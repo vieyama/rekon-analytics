@@ -17,7 +17,7 @@ class AdminSeeder extends Seeder
         // Insert a single user with type 0
         DB::table('users')->insert([
             'name' => 'Superadmin', // You can change this to any name you prefer
-            'email' => 'superadmin@s2p.com', // Change to a unique email
+            'email' => 'superadmin@rekon.com', // Change to a unique email
             'password' => Hash::make('qwerty123'), // Set a password
             'gender' => 'male', // Set the user type to 0
             'type' => 1, // Set the user type to 0

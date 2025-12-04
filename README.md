@@ -1,8 +1,7 @@
 
-# F2P
+# Rekon Analytics
 
-Leaderboard running event web apps.
-
+Rekon Analytics web apps.
 
 ## Acknowledgements
 
@@ -185,9 +184,9 @@ into:
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=database_name
-DB_USERNAME=mysql_username
-DB_PASSWORD=mysql_password
+DB_DATABASE=database_name (rekon)
+DB_USERNAME=mysql_username (root)
+DB_PASSWORD=mysql_password (root_pass)
 ```
 
 
@@ -202,6 +201,7 @@ Open terminal / bash then type command:
 ```bash
 php artisan db:seed --class=AdminSeeder
 ```
+it will creating user: superadmin@rekon.com / qwerty123
 
 ### Start Run Locally
 Open terminal / bash then type command:
@@ -212,4 +212,14 @@ php artisan serve
 Open another terminal / bash then type command:
 ```bash
 npm run dev
+```
+
+### Build locally
+Open terminal / bash then type command:
+```bash
+npm run build
+```
+then start it using:
+```bash
+php artisan serve
 ```
