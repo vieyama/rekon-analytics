@@ -28,6 +28,8 @@ class ReportController extends Controller
                 'school_name' => $request->report['school_name'],
                 'priorities_score' => $request->report['priorities_score'],
                 'aggregates_score' => $request->report['aggregates_score'],
+                'priorities_school_independent_program_score' => $request->report['priorities_school_independent_program_score'] ?? 0,
+                'aggregates_school_independent_program_score' => $request->report['aggregates_school_independent_program_score'] ?? 0,
                 'arkas_score' => $request->report['arkas_score'] ?? 0,
                 "created_at" =>  now(), # new \Datetime()
                 "updated_at" => now(),  # new \Datetime()

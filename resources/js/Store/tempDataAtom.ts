@@ -35,9 +35,12 @@ export type TempDataType = {
     id: number,
     user_id: number,
     year: string,
+    school_name: string,
     priorities_score: number,
     aggregates_score: number,
     arkas_score: number,
+    priorities_school_independent_program_score: number,
+    aggregates_school_independent_program_score: number,
     created_at: string,
     updated_at: string
     analytic_detail?: AnalyticDetailType[]

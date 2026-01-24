@@ -21,12 +21,19 @@ import { Input } from "@/Components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { TempDataType } from '@/Store/tempDataAtom';
 import { toast } from '@/hooks/use-toast';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 
 export type ParticipantProps = { name: string, email: string, gender: string }
 export type EventProps = { event_name: string, id: number, event_register: { user_id: number; }[] }
 
 export const columns: ColumnDef<TempDataType>[] = [
-
+    {
+        accessorKey: "school_name",
+        cell: ({ row }) => (
+            <div className="capitalize">{row.getValue("school_name")}</div>
+        ),
+    },
     {
         accessorKey: "year",
         cell: ({ row }) => (
@@ -38,12 +45,8 @@ export const columns: ColumnDef<TempDataType>[] = [
         cell: ({ row }) => <div className="lowercase">{row.getValue("priorities_score")}%</div>,
     },
     {
-        accessorKey: "aggregates_score",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("aggregates_score")}%</div>,
-    },
-    {
-        accessorKey: "arkas_score",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("arkas_score")}%</div>,
+        accessorKey: "priorities_school_independent_program_score",
+        cell: ({ row }) => <div className="lowercase">{row.getValue("priorities_school_independent_program_score")}</div>,
     },
     {
         accessorKey: "id",
@@ -134,20 +137,33 @@ export default function Dashboard() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead rowSpan={2} className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
+                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
+                                                Nama Sekolah
+                                            </TableHead>
+                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
                                                 Tahun
                                             </TableHead>
-                                            <TableHead colSpan={3} className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
-                                                Prosentase Kesesuaian
+                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Berbasis Rapor Pendidikan
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <Info className="w-4 h-4" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="max-w-xs font-normal">Skor ini mencerminkan hasil kesesuaian RKT dengan rapor pendidikan. Skor ini dihasilkan dengan mengevaluasi jumlah saran perbaikan yang tersisa untuk meningkatkan RKT Anda.</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
                                             </TableHead>
-                                            <TableHead rowSpan={2} className="px-4 py-2 font-semibold text-center">
+                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">
+                                                Jumlah Berdasarkan Program Mandiri Sekolah
+                                            </TableHead>
+                                            <TableHead className="px-4 py-2 font-semibold text-center">
                                                 Aksi
                                             </TableHead>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">RKT Prioritas</TableHead>
-                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">RKT Keseluruhan</TableHead>
-                                            <TableHead className="px-4 py-2 font-semibold text-center border-r border-[#e5e5e5]">Arkas</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>

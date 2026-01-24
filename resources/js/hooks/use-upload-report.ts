@@ -76,21 +76,41 @@ export function useFileUploader() {
                 const totals = rtkProcessedData.map((_, index) => ({
                     priorities_score: prioritiesScore[index].final_score,
                     aggregates_score: aggregatesScore[index].final_score,
+                    priorities_is_school_independent_program: prioritiesScore[index].is_school_independent_program,
+                    aggregates_is_school_independent_program: aggregatesScore[index].is_school_independent_program
 
                 })).reduce(
                     (acc, curr) => {
                         acc.total_priorities_score += curr.priorities_score;
                         acc.total_aggregates_score += curr.aggregates_score;
+                        if (curr.priorities_is_school_independent_program) {
+                            acc.total_priorities_school_independent_program += 1;
+                        }
+                        if (curr.aggregates_is_school_independent_program) {
+                            acc.total_aggregates_school_independent_program += 1;
+                        }
                         return acc;
                     },
-                    { total_priorities_score: 0, total_aggregates_score: 0 }
+                    { 
+                        total_priorities_score: 0, 
+                        total_aggregates_score: 0, 
+                        total_priorities_school_independent_program: 0, 
+                        total_aggregates_school_independent_program: 0 
+                    }
                 );
 
                 const average_priorities_score = totals.total_priorities_score / count;
                 const average_aggregates_score = totals.total_aggregates_score / count;
-
+ 
                 const payloadData = {
-                    report: { year, school_name, priorities_score: average_priorities_score.toFixed(2), aggregates_score: average_aggregates_score.toFixed(2) },
+                    report: { 
+                        year, 
+                        school_name, 
+                        priorities_score: average_priorities_score.toFixed(2), 
+                        aggregates_score: average_aggregates_score.toFixed(2),
+                        priorities_school_independent_program_score: totals.total_priorities_school_independent_program,
+                        aggregates_school_independent_program_score: totals.total_aggregates_school_independent_program
+                    },
                     rtk: rtkProcessedData.map((rtk, index) => ({
                         ...rtk,
                         priorities_identification_score: prioritiesScore[index].identification_score,

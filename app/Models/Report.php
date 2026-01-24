@@ -14,6 +14,8 @@ class Report extends Model
         'school_name',
         'priorities_score',
         'aggregates_score',
+        'priorities_school_independent_program_score',
+        'aggregates_school_independent_program_score',
         'arkas_score',
     ];
 

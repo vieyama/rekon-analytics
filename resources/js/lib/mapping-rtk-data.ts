@@ -94,12 +94,15 @@ export function scoringData(
 
         final_score = parseFloat((totalScore / 400 * 100).toFixed(2));
 
+        const is_school_independent_program = identification_score === 0 || root_problem_score === 0;
+
         return {
             identification_score,
             root_problem_score,
             fixing_activity_score,
             implementation_activity_score,
-            final_score
+            final_score,
+            is_school_independent_program
         };
     });
 }
