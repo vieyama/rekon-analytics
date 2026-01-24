@@ -17,7 +17,6 @@ export function ModalImportReport({ isOpen, setIsOpen }: { isOpen: boolean, setI
     const {
         register,
         handleSubmit,
-        formState: { errors },
         getValues,
         reset
     } = useForm();
@@ -26,10 +25,10 @@ export function ModalImportReport({ isOpen, setIsOpen }: { isOpen: boolean, setI
 
     const handleFileUpload = async () => {
         await uploadFile(getValues().file[0])
-        .then(() => {
-            reset()
-            setIsOpen(false)
-        })
+            .then(() => {
+                reset()
+                setIsOpen(false)
+            })
     };
 
     return (

@@ -9,8 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Report extends Model
 {
     protected $fillable = [
-        'year',
         'user_id',
+        'year',
+        'school_name',
+        'priorities_score',
+        'aggregates_score',
+        'arkas_score',
     ];
 
     public function user(): BelongsTo

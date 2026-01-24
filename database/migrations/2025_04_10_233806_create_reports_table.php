@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('year');
+            $table->string('school_name');
             $table->integer('priorities_score')->default(0);
             $table->integer('aggregates_score')->default(0);
             $table->integer('arkas_score')->default(0);

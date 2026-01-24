@@ -18,15 +18,17 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         $userId = $user->id;
-
+      
         try {
             DB::beginTransaction();
             // 1. Insert into reports table
             $reportId = DB::table('reports')->insertGetId([
                 'year' => $request->report['year'],
-                'user_id' => $userId,
+                'user_id' => $userId,   
+                'school_name' => $request->report['school_name'],
                 'priorities_score' => $request->report['priorities_score'],
                 'aggregates_score' => $request->report['aggregates_score'],
+                'arkas_score' => $request->report['arkas_score'] ?? 0,
                 "created_at" =>  now(), # new \Datetime()
                 "updated_at" => now(),  # new \Datetime()
             ]);

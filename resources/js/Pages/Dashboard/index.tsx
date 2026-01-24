@@ -3,8 +3,6 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ModalImportReport } from './Components/ModalImportReport';
 import { useState } from 'react';
-import { useAtom, useSetAtom } from 'jotai';
-import { eventIdAtom } from '@/Store/eventAtom';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -17,20 +15,11 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/Components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/Components/ui/dropdown-menu"
 import { Input } from "@/Components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { tempDataAtom, TempDataType } from '@/Store/tempDataAtom';
+import { TempDataType } from '@/Store/tempDataAtom';
 import { toast } from '@/hooks/use-toast';
 
 export type ParticipantProps = { name: string, email: string, gender: string }
@@ -84,7 +73,6 @@ export const columns: ColumnDef<TempDataType>[] = [
 ]
 
 export default function Dashboard() {
-    const user = usePage().props?.auth?.user
 
     const [isOpen, setIsOpen] = useState(false)
     const [sorting, setSorting] = useState<SortingState>([])
@@ -122,13 +110,7 @@ export default function Dashboard() {
     })
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Dashboard" />
             <div className="py-6">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">

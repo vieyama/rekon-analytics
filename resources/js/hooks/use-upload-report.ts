@@ -1,9 +1,7 @@
-// import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
-// import { stringSimilarity } from "string-similarity-js";
-import { useAtom, useSetAtom } from 'jotai';
-import { tempDataAtom, TempDataType } from '@/Store/tempDataAtom';
+import { useAtom } from 'jotai';
+import { tempDataAtom } from '@/Store/tempDataAtom';
 import { mappingRtk, scoringData } from '@/lib/mapping-rtk-data';
 import { router } from '@inertiajs/react';
 
@@ -11,14 +9,8 @@ export type UploadStatus = 'idle' | 'Uploading ...' | 'Uploaded' | 'Processing .
 
 export function useFileUploader() {
     const [status, setStatus] = useState<UploadStatus>('idle');
-    const [data, setData] = useAtom(tempDataAtom)
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const startProcess = async () => {
-
-
-    };
 
     const extractSheetData = (sheet: XLSX.WorkSheet, type: string) => {
         const bKeys = Object.keys(sheet).filter(key => key.startsWith(type));
@@ -44,8 +36,11 @@ export function useFileUploader() {
             reader.onload = (event: any) => {
                 const workbook = XLSX.read(event.target.result, { type: 'binary' });
                 const reportTitle = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[3]], { header: 1 }) as string[];
+                const sheet = workbook.Sheets[workbook.SheetNames[3]];
+                const fullTitle = sheet['A1']?.v || '';
 
                 const year = reportTitle[0]?.[0]?.slice(-4)
+                const school_name = fullTitle.replace(year, '').replace('RKT', '').replace('REKOMENDASI PRIORITAS PBD', '').replace('TAHUN', '').trim();
 
                 // rtk data
                 const rtkData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[4]], { header: 1 });
@@ -95,7 +90,7 @@ export function useFileUploader() {
                 const average_aggregates_score = totals.total_aggregates_score / count;
 
                 const payloadData = {
-                    report: { year, priorities_score: average_priorities_score.toFixed(2), aggregates_score: average_aggregates_score.toFixed(2) },
+                    report: { year, school_name,priorities_score: average_priorities_score.toFixed(2), aggregates_score: average_aggregates_score.toFixed(2) },
                     rtk: rtkProcessedData.map((rtk, index) => ({
                         ...rtk,
                         priorities_identification_score: prioritiesScore[index].identification_score,
@@ -125,7 +120,7 @@ export function useFileUploader() {
                 router.post('report', payloadData)
             };
 
-            reader.readAsBinaryString(file);
+            reader.readAsArrayBuffer(file);
 
         } catch (error) {
             console.error(error);

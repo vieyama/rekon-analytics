@@ -1,9 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, usePage } from '@inertiajs/react';
-import { ModalImportReport } from './Components/ModalImportReport';
-import { useEffect, useState } from 'react';
-import { useAtom } from 'jotai';
+import { Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -21,7 +19,7 @@ import { Button } from "@/Components/ui/button"
 
 import { Input } from "@/Components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { AnalyticDetailType, Rkts, tempDataAtom, TempDataType } from '@/Store/tempDataAtom';
+import { Rkts } from '@/Store/tempDataAtom';
 
 export const columns: ColumnDef<Rkts>[] = [
     {
@@ -42,7 +40,7 @@ export const columns: ColumnDef<Rkts>[] = [
     },
     {
         accessorKey: "arkas_score",
-        cell: ({ row }) => <div className="lowercase">-</div>,
+        cell: () => <div className="lowercase">-</div>,
     },
     {
         accessorKey: "priorities_indicator",
@@ -57,8 +55,6 @@ export const columns: ColumnDef<Rkts>[] = [
         cell: ({ row }) => <div className="lowercase">{row.getValue("arkas_indicator") ?? '-'}</div>,
     },
 ]
-
-const parsePageId = (path: string) => path.substring(path.lastIndexOf('/') + 1)
 
 export default function DetailReport() {
     const rkts = usePage().props?.rkts as Rkts[]
@@ -99,13 +95,7 @@ export default function DetailReport() {
     })
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
-                </h2>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Dashboard" />
             <div className="py-6">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
