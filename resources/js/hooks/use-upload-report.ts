@@ -90,7 +90,7 @@ export function useFileUploader() {
                 const average_aggregates_score = totals.total_aggregates_score / count;
 
                 const payloadData = {
-                    report: { year, school_name,priorities_score: average_priorities_score.toFixed(2), aggregates_score: average_aggregates_score.toFixed(2) },
+                    report: { year, school_name, priorities_score: average_priorities_score.toFixed(2), aggregates_score: average_aggregates_score.toFixed(2) },
                     rtk: rtkProcessedData.map((rtk, index) => ({
                         ...rtk,
                         priorities_identification_score: prioritiesScore[index].identification_score,
@@ -117,6 +117,7 @@ export function useFileUploader() {
                         implementation_activity: aggregatesImplementationActivity
                     }
                 }
+                
                 router.post('report', payloadData)
             };
 

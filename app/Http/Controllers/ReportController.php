@@ -40,7 +40,7 @@ class ReportController extends Controller
                     'identification' => $rktData['identification'],
                     'root_problem' => $rktData['root_problems'],
                     'fixing_activity' => $rktData['fixing_activity'],
-                    'implementation_activity' => json_encode($rktData['implementation_activity']),
+                    'implementation_activity' => $rktData['implementation_activity'],
                     'priorities_identification_score' => $rktData['priorities_identification_score'],
                     'priorities_root_problem_score' => $rktData['priorities_root_problem_score'],
                     'priorities_fixing_activity_score' => $rktData['priorities_fixing_activity_score'],

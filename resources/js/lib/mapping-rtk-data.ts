@@ -7,18 +7,20 @@ export function mappingRtk(rtkTempData: string[][]) {
     for (const row of rtkTempData) {
         const [id, identification, root_problems, fixing_activity, implementation_activity] = row;
 
-        if (identification && root_problems && fixing_activity) {
+        if (root_problems && fixing_activity) {
             currentGroup = {
-                identification,
+                identification: identification || '',
                 root_problems,
                 fixing_activity,
-                implementation_activity: []
+                implementation_activity: ''
             };
             result.push(currentGroup);
         }
 
         if (currentGroup && implementation_activity) {
-            currentGroup.implementation_activity.push(implementation_activity as never);
+            currentGroup.implementation_activity = currentGroup.implementation_activity
+                ? `${currentGroup.implementation_activity}\n${implementation_activity}`
+                : implementation_activity;
         }
     }
 
@@ -34,7 +36,7 @@ export function scoringData(
         identification: string;
         root_problems: string;
         fixing_activity: string;
-        implementation_activity: never[];
+        implementation_activity: string;
     }[],
     identificationData: string[],
     rootProblemData: string[],
@@ -50,7 +52,9 @@ export function scoringData(
         const identification = normalize(item.identification);
         const rootProblems = normalize(item.root_problems);
         const fixingActivity = normalize(item.fixing_activity);
-        const implementationActivities = (item.implementation_activity || []).map(normalize);
+        
+        const rawActivities = (item.implementation_activity || "").split('\n').filter(Boolean);
+        const implementationActivities = rawActivities.map(normalize);
 
         // Step 1
         const hasIdentification = normalizedIdentification.includes(identification);
@@ -70,8 +74,7 @@ export function scoringData(
         // Step 4
         let implementation_activity_score = 0;
         if (fixing_activity_score > 0 && implementationActivities.length > 0) {
-            const scores = item.implementation_activity.map(act => {
-                const normAct = normalize(act);
+            const scores = implementationActivities.map(normAct => {
                 const { bestMatch } = stringSimilarity.findBestMatch(normAct, normalizedImplementationActivity);
                 return bestMatch.rating;
             });
