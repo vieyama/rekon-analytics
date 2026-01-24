@@ -41,6 +41,7 @@ class ReportController extends Controller
                     'root_problem' => $rktData['root_problems'],
                     'fixing_activity' => $rktData['fixing_activity'],
                     'implementation_activity' => $rktData['implementation_activity'],
+                    'is_require_cost' => $rktData['is_require_cost'] ?? false,
                     'priorities_identification_score' => $rktData['priorities_identification_score'],
                     'priorities_root_problem_score' => $rktData['priorities_root_problem_score'],
                     'priorities_fixing_activity_score' => $rktData['priorities_fixing_activity_score'],

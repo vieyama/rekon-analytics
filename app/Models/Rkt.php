@@ -13,6 +13,7 @@ class Rkt extends Model
         'root_problem',
         'fixing_activity',
         'implementation_activity',
+        'is_require_cost',
         'priorities_identification_score',
         'priorities_root_problem_score',
         'priorities_fixing_activity_score',

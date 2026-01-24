@@ -5,14 +5,15 @@ export function mappingRtk(rtkTempData: string[][]) {
     let currentGroup = null;
 
     for (const row of rtkTempData) {
-        const [id, identification, root_problems, fixing_activity, implementation_activity] = row;
+        const [id, identification, root_problems, fixing_activity, implementation_activity, is_require_cost] = row;
 
         if (root_problems && fixing_activity) {
             currentGroup = {
                 identification: identification || '',
                 root_problems,
                 fixing_activity,
-                implementation_activity: ''
+                implementation_activity: '',
+                is_require_cost: (is_require_cost || '').trim().toLowerCase() === 'ya'
             };
             result.push(currentGroup);
         }
@@ -37,6 +38,7 @@ export function scoringData(
         root_problems: string;
         fixing_activity: string;
         implementation_activity: string;
+        is_require_cost?: boolean;
     }[],
     identificationData: string[],
     rootProblemData: string[],
