@@ -42,7 +42,7 @@ export const columns: ColumnDef<TempDataType>[] = [
     },
     {
         accessorKey: "priorities_score",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("priorities_score")}%</div>,
+        cell: ({ row }) => <div className="lowercase">{Number(row.getValue("priorities_score")).toFixed(2)}%</div>,
     },
     {
         accessorKey: "priorities_school_independent_program_score",
