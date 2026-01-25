@@ -510,4 +510,26 @@ class ReportController extends Controller
         // Lowercase and remove all non-alphanumeric characters to be robust against whitespace differences
         return preg_replace('/[^a-z0-9]/', '', strtolower($str));
     }
+
+    public function updateRkt(Request $request, $id)
+    {
+        $rkt = Rkt::findOrFail($id);
+        
+        $dataToUpdate = [];
+        if ($request->has('fixing_activity')) {
+            $dataToUpdate['fixing_activity'] = $request->fixing_activity;
+            // Also update level to 'Baik' as it is now fixed
+            $dataToUpdate['priorities_activity_level'] = 'Baik';
+        }
+        
+        if ($request->has('implementation_activity')) {
+            $dataToUpdate['implementation_activity'] = $request->implementation_activity;
+             // Also update level to 'Baik' as it is now fixed
+            $dataToUpdate['priorities_implementation_level'] = 'Baik';
+        }
+
+        $rkt->update($dataToUpdate);
+
+        return back();
+    }
 }

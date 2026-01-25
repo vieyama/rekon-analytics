@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Report;
 use App\Models\Rkt;
+use App\Models\RktRecommendation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -28,7 +29,8 @@ class DashboardController extends Controller
     public function detailReport($reportId)
     {
         $rkts = Rkt::where('report_id', $reportId)->get();
-        $report = Report::find($reportId)->first();
-        return Inertia::render('Dashboard/DetailReport', ['rkts' => $rkts, 'report' => $report]);
+        $recommendations = RktRecommendation::where('report_id', $reportId)->get();
+        $report = Report::find($reportId);
+        return Inertia::render('Dashboard/DetailReport', ['rkts' => $rkts, 'recommendations' => $recommendations, 'report' => $report]);
     }
 }

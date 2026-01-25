@@ -1,193 +1,256 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import {
-    ColumnDef,
-    ColumnFiltersState,
-    SortingState,
-    VisibilityState,
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
-} from "@tanstack/react-table"
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/Components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/Components/ui/dialog"
+import { Button } from '@/Components/ui/button';
+import { useState } from 'react';
 
-import { Button } from "@/Components/ui/button"
+interface Rkt {
+    id: number;
+    identification: string;
+    root_problem: string;
+    fixing_activity: string;
+    implementation_activity: string;
+    is_require_cost: boolean | number;
+    priorities_identification_score: number;
+    priorities_root_problem_score: number;
+    priorities_activity_level: string | null;
+    priorities_implementation_level: string | null;
+    fixing_activity_recommendation?: string | null;
+    implementation_activity_recommendation?: string | null;
+}
 
-import { Input } from "@/Components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { Rkts } from '@/Store/tempDataAtom';
+interface RktRecommendation {
+    id: number;
+    identification: string;
+    root_problem: string;
+    activity: string;
+    implementation_description: string;
+    is_require_cost: boolean | number;
+}
 
-export const columns: ColumnDef<Rkts>[] = [
-    {
-        accessorKey: "identification",
-        cell: ({ row }) => {
-            return (
-                <div className="capitalize">{row.getValue("identification")}</div>
-            )
-        },
-    },
-    {
-        accessorKey: "priorities_score",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("priorities_score")}%</div>,
-    },
-    {
-        accessorKey: "aggregates_score",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("aggregates_score")}%</div>,
-    },
-    {
-        accessorKey: "arkas_score",
-        cell: () => <div className="lowercase">-</div>,
-    },
-    {
-        accessorKey: "priorities_indicator",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("priorities_indicator") ?? '-'}</div>,
-    },
-    {
-        accessorKey: "aggregates_indicator",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("aggregates_indicator") ?? '-'}</div>,
-    },
-    {
-        accessorKey: "arkas_indicator",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("arkas_indicator") ?? '-'}</div>,
-    },
-]
+interface Report {
+    year: string;
+    school_name: string;
+    priorities_score: number;
+}
 
 export default function DetailReport() {
-    const rkts = usePage().props?.rkts as Rkts[]
-    const report = usePage().props?.report as { year: string }
+    const { rkts, recommendations, report } = usePage().props as unknown as {
+        rkts: Rkt[],
+        recommendations: RktRecommendation[],
+        report: Report
+    };
 
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
-        []
-    )
-    const [columnVisibility, setColumnVisibility] =
-        useState<VisibilityState>({})
-    const [rowSelection, setRowSelection] = useState({})
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedRkt, setSelectedRkt] = useState<Rkt | null>(null);
+    const [selectedType, setSelectedType] = useState<'activity' | 'implementation' | null>(null);
+    const [recommendationText, setRecommendationText] = useState<string>('');
 
-    const table = useReactTable({
-        data: rkts,
-        columns,
+    const handleCellClick = (rkt: Rkt, type: 'activity' | 'implementation', level: string | null) => {
+        if (!level) return;
+        const normalizedLevel = level.toLowerCase();
+        if (normalizedLevel === 'kurang' || normalizedLevel === 'cukup') {
+            const recommendation = type === 'activity' ? rkt.fixing_activity_recommendation : rkt.implementation_activity_recommendation;
+            if (recommendation) {
+                setSelectedRkt(rkt);
+                setSelectedType(type);
+                setRecommendationText(recommendation);
+                setIsModalOpen(true);
+            }
+        }
+    };
 
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
-        onRowSelectionChange: setRowSelection,
-        initialState: {
-            pagination: {
-                pageIndex: 0, //custom initial page index
-                pageSize: 5, //custom default page size
+    const handleAccept = () => {
+        if (!selectedRkt || !selectedType) return;
+
+        const data: any = {};
+        if (selectedType === 'activity') {
+            data.fixing_activity = recommendationText;
+        } else {
+            data.implementation_activity = recommendationText;
+        }
+
+        router.patch(route('rkt.update', selectedRkt.id), data, {
+            onSuccess: () => {
+                setIsModalOpen(false);
+                setSelectedRkt(null);
+                setSelectedType(null);
+                setRecommendationText('');
             },
-        },
-        state: {
-            sorting,
-            columnFilters,
-            columnVisibility,
-            rowSelection,
-        },
-    })
+        });
+    };
+
+    const getRowColor = (isIndependent: boolean, type: 'activity' | 'implementation', level: string) => {
+        if (isIndependent) {
+            return 'bg-gray-200 hover:bg-gray-200';
+        }
+
+        const normalizedLevel = level.toLowerCase();
+        const cursorClass = (normalizedLevel === 'kurang' || normalizedLevel === 'cukup') ? 'cursor-pointer hover:opacity-80' : '';
+
+        if (normalizedLevel === 'cukup') return `bg-yellow-100 hover:bg-yellow-100 ${cursorClass}`;
+        if (normalizedLevel === 'kurang') return `bg-red-100 hover:bg-red-100 ${cursorClass}`;
+        if (normalizedLevel === 'baik') return 'bg-white hover:bg-white';
+
+        return 'bg-white hover:bg-white';
+    };
+
+    const formatCost = (val: boolean | number) => {
+        if (val === true || val === 1) return 'Ya';
+        return 'Tidak';
+    };
 
     return (
         <AuthenticatedLayout>
-            <Head title="Dashboard" />
+            <Head title={`Detail Rapor ${report.school_name} ${report.year}`} />
             <div className="py-6">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-8">
+                    {/* Header Section */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h1 className="text-2xl font-bold uppercase mb-2">
+                            {report.school_name} TAHUN {report.year}
+                        </h1>
+                        <p className="text-lg">
+                            Berdasarkan Rapor Pendidikan: <span className="font-semibold">{report.priorities_score ? parseFloat(report.priorities_score.toString()).toFixed(2) : 0}/100</span>
+                        </p>
+                    </div>
+
+                    {/* Table 1: RKTs */}
                     <Card className="w-full">
-                        <CardHeader className='flex justify-between sm:items-center sm:flex-row'>
-                            <CardTitle className='text-2xl'>Detail Rapor Tahun {report?.year}</CardTitle>
+                        <CardHeader>
+                            <CardTitle>Rencana Kerja Tahunan</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center py-4">
-                                <Input
-                                    placeholder="Cari identifikasi..."
-                                    value={(table.getColumn("identification")?.getFilterValue() as string) ?? ""}
-                                    onChange={(event) =>
-                                        table.getColumn("identification")?.setFilterValue(event.target.value)
-                                    }
-                                    className="max-w-sm"
-                                />
-                            </div>
-                            <div className="border rounded-md">
+                            <div className="border rounded-md overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead rowSpan={3} className="px-4 py-2 align-middle border border-[#e5e5e5]">Identifikasi Masalah</TableHead>
-                                            <TableHead colSpan={3} className="px-4 py-2 border border-[#e5e5e5]">Prosentase Kesesuaian</TableHead>
-                                            <TableHead colSpan={3} className="px-4 py-2 border border-[#e5e5e5]">Indikator yang belum terpenuhi</TableHead>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableHead colSpan={2} className="px-4 py-2 border border-[#e5e5e5]">RKT</TableHead>
-                                            <TableHead rowSpan={2} className="px-4 py-2 align-middle border border-[#e5e5e5]">Arkas</TableHead>
-                                            <TableHead colSpan={2} className="px-4 py-2 border border-[#e5e5e5]">RKT</TableHead>
-                                            <TableHead rowSpan={2} className="px-4 py-2 border border-[#e5e5e5]">Arkas</TableHead>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableHead className="px-4 py-2 border border-[#e5e5e5]">Prioritas</TableHead>
-                                            <TableHead className="px-4 py-2 border border-[#e5e5e5]">Keseluruhan</TableHead>
-                                            <TableHead className="px-4 py-2 border border-[#e5e5e5]">Prioritas</TableHead>
-                                            <TableHead className="px-4 py-2 border border-[#e5e5e5]">Keseluruhan</TableHead>
+                                            <TableHead className="w-[50px]">No</TableHead>
+                                            <TableHead>Identifikasi</TableHead>
+                                            <TableHead>Akar Masalah</TableHead>
+                                            <TableHead>Kegiatan Benahi</TableHead>
+                                            <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
+                                            <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {table.getRowModel().rows?.length ? (
-                                            table.getRowModel().rows.map((row) => (
-                                                <TableRow
-                                                    key={row.id}
-                                                    data-state={row.getIsSelected() && "selected"}
-                                                >
-                                                    {row.getVisibleCells().map((cell) => (
-                                                        <TableCell className='border-r border-[#e5e5e5]' align='center' key={cell.id}>
-                                                            {flexRender(
-                                                                cell.column.columnDef.cell,
-                                                                cell.getContext()
-                                                            )}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))
+                                        {rkts && rkts.length > 0 ? (
+                                            rkts.map((rkt, index) => {
+                                                console.log(rkt)
+                                                const isIndependent = rkt?.priorities_identification_score === 0 || rkt?.priorities_root_problem_score === 0
+                                                return (
+                                                    <TableRow key={rkt.id} className="hover:bg-transparent">
+                                                        <TableCell className="text-center">{index + 1}</TableCell>
+                                                    <TableCell>{rkt.identification}</TableCell>
+                                                    <TableCell>{rkt.root_problem}</TableCell>
+                                                    <TableCell
+                                                        className={getRowColor(isIndependent, 'activity', rkt.priorities_activity_level || '')}
+                                                        onClick={() => handleCellClick(rkt, 'activity', rkt.priorities_activity_level || '')}
+                                                    >
+                                                        {rkt.fixing_activity}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        className={getRowColor(isIndependent, 'implementation', rkt.priorities_implementation_level || '')}
+                                                        onClick={() => handleCellClick(rkt, 'implementation', rkt.priorities_implementation_level || '')}
+                                                    >
+                                                        {rkt.implementation_activity}
+                                                    </TableCell>
+                                                    <TableCell>{formatCost(rkt.is_require_cost)}</TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
                                         ) : (
                                             <TableRow>
-                                                <TableCell
-                                                    colSpan={columns.length}
-                                                    className="h-24 text-center"
-                                                >
-                                                    Tidak ada data.
+                                                <TableCell colSpan={6} className="text-center h-24">
+                                                    Tidak ada data RKT.
                                                 </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
                             </div>
-                            <div className="flex items-center justify-end py-4 space-x-2">
-                                <div className="space-x-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => table.previousPage()}
-                                        disabled={!table.getCanPreviousPage()}
-                                    >
-                                        Previous
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => table.nextPage()}
-                                        disabled={!table.getCanNextPage()}
-                                    >
-                                        Next
-                                    </Button>
-                                </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Table 2: Recommendations */}
+                    <Card className="w-full">
+                        <CardHeader>
+                            <CardTitle>Saran RKT berdasarkan analisis rapor pendidikan yang belum terakomodir</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="border rounded-md overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">No</TableHead>
+                                            <TableHead>Identifikasi</TableHead>
+                                            <TableHead>Akar Masalah</TableHead>
+                                            <TableHead>Kegiatan Benahi</TableHead>
+                                            <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
+                                            <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {recommendations && recommendations.length > 0 ? (
+                                            recommendations.map((rec, index) => (
+                                                <TableRow key={rec.id}>
+                                                    <TableCell className="text-center">{index + 1}</TableCell>
+                                                    <TableCell>{rec.identification}</TableCell>
+                                                    <TableCell>{rec.root_problem}</TableCell>
+                                                    <TableCell>{rec.activity}</TableCell>
+                                                    <TableCell>{rec.implementation_description}</TableCell>
+                                                    <TableCell>{formatCost(rec.is_require_cost)}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center h-24">
+                                                    Tidak ada saran rekomendasi.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="sm:max-w-[600px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl">
+                                {selectedRkt && (selectedType === 'activity' ? selectedRkt.priorities_activity_level : selectedRkt.priorities_implementation_level)} relevan dengan rapor pendidikan
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <h4 className="font-bold mb-2">Saran Perbaikan</h4>
+                            <p className="text-gray-700">{recommendationText}</p>
+                        </div>
+                        <DialogFooter className="flex-row gap-4 sm:justify-between">
+                            <Button className="bg-blue-600 hover:bg-blue-700 w-full text-base py-6" onClick={handleAccept}>
+                                Terima
+                            </Button>
+                            <Button variant="destructive" className="w-full text-base py-6 bg-red-600 hover:bg-red-700" onClick={() => setIsModalOpen(false)}>
+                                Tolak
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AuthenticatedLayout>
     );

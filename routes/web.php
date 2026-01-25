@@ -15,6 +15,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/report', [ReportController::class, 'insert'])->name('insert-report');
     Route::delete('/report/{id}', [ReportController::class, 'delete'])->name('delete-report');
     Route::post('/report/recommendation/{id}', [ReportController::class, 'generateRecommendation'])->name('generate-recommendation');
+    Route::patch('/rkt/{id}', [ReportController::class, 'updateRkt'])->name('rkt.update');
 });
 
 require __DIR__ . '/auth.php';
