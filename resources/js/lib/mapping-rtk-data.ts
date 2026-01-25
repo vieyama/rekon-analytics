@@ -28,7 +28,7 @@ export function mappingRtk(rtkTempData: string[][]) {
     return result
 }
 
-function normalize(str: string) {
+export function normalize(str: string) {
     return str.replace(/^[A-Z](\.\d+)+\s*/, '').toLowerCase().trim();
 }
 

@@ -63,8 +63,32 @@ export const columns: ColumnDef<TempDataType>[] = [
                     }
                 })
             }
+
+            const handleGenerateRecommendationsWithAI = (id: string) => {
+                toast({
+                    title: "Generating Recommendation...",
+                    description: "Please wait while AI generates the recommendation.",
+                })
+                router.post(`/report/recommendation/${id}`, {}, {
+                    onSuccess: () => {
+                        toast({
+                            title: "Success",
+                            description: "Recommendation generated successfully"
+                        })
+                    },
+                    onError: () => {
+                         toast({
+                            title: "Error",
+                            description: "Failed to generate recommendation",
+                            variant: "destructive"
+                        })
+                    }
+                })
+            }
+
             return (
                 <div className='flex w-auto gap-2'>
+                    <Button onClick={() => handleGenerateRecommendationsWithAI(row.getValue("id"))}>Gen AI</Button>
                     <Button asChild>
                         <Link href={`/dashboard/report/${row.getValue("id")}`}>Detail</Link>
                     </Button>

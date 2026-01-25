@@ -14,6 +14,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/report', [ReportController::class, 'insert'])->name('insert-report');
     Route::delete('/report/{id}', [ReportController::class, 'delete'])->name('delete-report');
+    Route::post('/report/recommendation/{id}', [ReportController::class, 'generateRecommendation'])->name('generate-recommendation');
 });
 
 require __DIR__ . '/auth.php';

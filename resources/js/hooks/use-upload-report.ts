@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useAtom } from 'jotai';
 import { tempDataAtom } from '@/Store/tempDataAtom';
-import { mappingRtk, scoringData } from '@/lib/mapping-rtk-data';
+import { mappingRtk, scoringData, normalize } from '@/lib/mapping-rtk-data';
 import { router } from '@inertiajs/react';
 
 export type UploadStatus = 'idle' | 'Uploading ...' | 'Uploaded' | 'Processing ...' | 'Finished' | 'Error';
@@ -91,25 +91,35 @@ export function useFileUploader() {
                         }
                         return acc;
                     },
-                    { 
-                        total_priorities_score: 0, 
-                        total_aggregates_score: 0, 
-                        total_priorities_school_independent_program: 0, 
-                        total_aggregates_school_independent_program: 0 
+                    {
+                        total_priorities_score: 0,
+                        total_aggregates_score: 0,
+                        total_priorities_school_independent_program: 0,
+                        total_aggregates_school_independent_program: 0
                     }
                 );
 
                 const average_priorities_score = totals.total_priorities_score / count;
                 const average_aggregates_score = totals.total_aggregates_score / count;
- 
+
+                // Calculate unselected priorities (based on BOTH identification AND root problem)
+                const rtkKeys = new Set(rtkProcessedData.map(item => `${normalize(item.identification)}|${normalize(item.root_problems)}`));
+                
+                const unselectedPriorities = prioritiesIdentification.filter((id, index) => {
+                    const rootProblem = prioritiesRootProblems[index];
+                    const key = `${normalize(id)}|${normalize(rootProblem)}`;
+                    return !rtkKeys.has(key);
+                });
+                
                 const payloadData = {
-                    report: { 
-                        year, 
-                        school_name, 
-                        priorities_score: average_priorities_score.toFixed(2), 
+                    report: {
+                        year,
+                        school_name,
+                        priorities_score: average_priorities_score.toFixed(2),
                         aggregates_score: average_aggregates_score.toFixed(2),
                         priorities_school_independent_program_score: totals.total_priorities_school_independent_program,
-                        aggregates_school_independent_program_score: totals.total_aggregates_school_independent_program
+                        aggregates_school_independent_program_score: totals.total_aggregates_school_independent_program,
+                        unselected_priorities_count: unselectedPriorities.length
                     },
                     rtk: rtkProcessedData.map((rtk, index) => ({
                         ...rtk,
@@ -137,7 +147,7 @@ export function useFileUploader() {
                         implementation_activity: aggregatesImplementationActivity
                     }
                 }
-                
+
                 router.post('report', payloadData)
             };
 
