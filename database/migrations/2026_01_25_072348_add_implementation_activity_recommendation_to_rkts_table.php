@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rkts', function (Blueprint $table) {
-            //
+            $table->longText('implementation_activity_recommendation')->nullable()->after('fixing_activity_recommendation');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('rkts', function (Blueprint $table) {
-            //
+            $table->dropColumn('implementation_activity_recommendation');
         });
     }
 };

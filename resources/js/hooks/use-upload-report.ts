@@ -2,7 +2,6 @@ import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { mappingRtk, scoringData, normalize } from '@/lib/mapping-rtk-data';
 import { router } from '@inertiajs/react';
-import { toast } from './use-toast';
 
 export type UploadStatus = 'idle' | 'Uploading ...' | 'Uploaded' | 'Processing ...' | 'Finished' | 'Error';
 
@@ -28,9 +27,6 @@ export function useFileUploader() {
 
         setStatus('Processing ...');
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-
             await new Promise<void>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async (event: any) => {
@@ -68,47 +64,13 @@ export function useFileUploader() {
                         const aggregatesFixingActivity = extractSheetData(workbook.Sheets[workbook.SheetNames[2]], 'G')
                         const aggregatesImplementationActivity = extractSheetData(workbook.Sheets[workbook.SheetNames[2]], 'H')
 
-                        const prioritiesScore = await scoringData(rtkProcessedData, prioritiesIdentification, prioritiesRootProblems, prioritiesFixingActivity, prioritiesImplementationActivity)
-                            .catch((err) => {
-                                console.log('Error', err)
-                                toast({
-                                    title: "Error",
-                                    description: "Failed to generate calculate priorities score",
-                                    variant: "destructive"
-                                })
-                            });
-
-                        const aggregatesScore = await scoringData(rtkProcessedData, aggregatesIdentification, aggregatesRootProblems, aggregatesFixingActivity, aggregatesImplementationActivity)
-                        const count = rtkProcessedData.length;
+                        const prioritiesScore = scoringData(rtkProcessedData, prioritiesIdentification, prioritiesRootProblems)
+                        const aggregatesScore = scoringData(rtkProcessedData, aggregatesIdentification, aggregatesRootProblems)
 
                         const totals = rtkProcessedData.map((_, index) => ({
-                            priorities_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.final_score : 0),
-                            aggregates_score: aggregatesScore[index].final_score,
-                            priorities_is_school_independent_program: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.is_school_independent_program : false),
-                            aggregates_is_school_independent_program: aggregatesScore[index].is_school_independent_program
-
-                        })).reduce(
-                            (acc, curr) => {
-                                acc.total_priorities_score += curr.priorities_score;
-                                acc.total_aggregates_score += curr.aggregates_score;
-                                if (curr.priorities_is_school_independent_program) {
-                                    acc.total_priorities_school_independent_program += 1;
-                                }
-                                if (curr.aggregates_is_school_independent_program) {
-                                    acc.total_aggregates_school_independent_program += 1;
-                                }
-                                return acc;
-                            },
-                            {
-                                total_priorities_score: 0,
-                                total_aggregates_score: 0,
-                                total_priorities_school_independent_program: 0,
-                                total_aggregates_school_independent_program: 0
-                            }
-                        );
-
-                        const average_priorities_score = totals.total_priorities_score / count;
-                        const average_aggregates_score = totals.total_aggregates_score / count;
+                            total_priorities_school_independent_program: prioritiesScore[index]?.is_school_independent_program || false,
+                            total_aggregates_school_independent_program: aggregatesScore[index]?.is_school_independent_program || false
+                        }));
 
                         // Calculate unselected priorities (based on BOTH identification AND root problem)
                         const rtkKeys = new Set(rtkProcessedData.map(item => `${normalize(item.identification)}|${normalize(item.root_problems)}`));
@@ -123,25 +85,16 @@ export function useFileUploader() {
                             report: {
                                 year,
                                 school_name,
-                                priorities_score: average_priorities_score.toFixed(2),
-                                aggregates_score: average_aggregates_score.toFixed(2),
-                                priorities_school_independent_program_score: totals.total_priorities_school_independent_program,
-                                aggregates_school_independent_program_score: totals.total_aggregates_school_independent_program,
+                                priorities_school_independent_program_score: totals.reduce((sum, t) => sum + (t.total_priorities_school_independent_program ? 1 : 0), 0),
+                                aggregates_school_independent_program_score: totals.reduce((sum, t) => sum + (t.total_aggregates_school_independent_program ? 1 : 0), 0),
                                 unselected_priorities_count: unselectedPriorities.length
                             },
                             rtk: rtkProcessedData.map((rtk, index) => ({
                                 ...rtk,
                                 priorities_identification_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.identification_score : 0),
                                 priorities_root_problem_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.root_problem_score : 0),
-                                priorities_fixing_activity_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.fixing_activity_score : 0),
-                                priorities_implementation_activity_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.implementation_activity_score : 0),
-                                priorities_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.final_score : 0),
-                                fixing_activity_recommendation: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.fixing_activity_recommendation : ''),
                                 aggregates_identification_score: aggregatesScore[index].identification_score,
                                 aggregates_root_problem_score: aggregatesScore[index].root_problem_score,
-                                aggregates_fixing_activity_score: aggregatesScore[index].fixing_activity_score,
-                                aggregates_implementation_activity_score: aggregatesScore[index].implementation_activity_score,
-                                aggregates_score: aggregatesScore[index].final_score,
                             })),
                             priorities: {
                                 identifications: prioritiesIdentification,
@@ -157,8 +110,14 @@ export function useFileUploader() {
                             }
                         }
 
-                        router.post('report', payloadData)
-                        resolve();
+                        router.post('report', payloadData, {
+                            onSuccess: () => {
+                                resolve();
+                            },
+                            onError: (err) => {
+                                reject(err);
+                            }
+                        })
                     } catch (err) {
                         reject(err);
                     }
@@ -168,6 +127,7 @@ export function useFileUploader() {
 
         } catch (error) {
             console.error(error);
+            setStatus('Error');
         }
         await delay(500); // simulate uploaded waiting
         setStatus('Finished');

@@ -21,7 +21,7 @@ import { Input } from "@/Components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { TempDataType } from '@/Store/tempDataAtom';
 import { toast } from '@/hooks/use-toast';
-import { Info } from 'lucide-react';
+import { Info, Eye, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 
 export type ParticipantProps = { name: string, email: string, gender: string }
@@ -63,36 +63,17 @@ export const columns: ColumnDef<TempDataType>[] = [
                     }
                 })
             }
-
-            const handleGenerateRecommendationsWithAI = (id: string) => {
-                toast({
-                    title: "Generating Recommendation...",
-                    description: "Please wait while AI generates the recommendation.",
-                })
-                router.post(`/report/recommendation/${id}`, {}, {
-                    onSuccess: () => {
-                        toast({
-                            title: "Success",
-                            description: "Recommendation generated successfully"
-                        })
-                    },
-                    onError: () => {
-                        toast({
-                            title: "Error",
-                            description: "Failed to generate recommendation",
-                            variant: "destructive"
-                        })
-                    }
-                })
-            }
-
+            
             return (
                 <div className='flex w-auto gap-2'>
-                    <Button onClick={() => handleGenerateRecommendationsWithAI(row.getValue("id"))}>Gen AI</Button>
-                    <Button asChild>
-                        <Link href={`/dashboard/report/${row.getValue("id")}`}>Detail</Link>
+                    <Button variant="outline" size="icon" asChild>
+                        <Link href={`/dashboard/report/${row.getValue("id")}`}>
+                            <Eye className="w-4 h-4" />
+                        </Link>
                     </Button>
-                    <Button onClick={() => handleDelete(row.getValue("id"))}>Hapus</Button>
+                    <Button variant="destructive" size="icon" onClick={() => handleDelete(row.getValue("id"))}>
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
                 </div>
             )
         },
@@ -147,14 +128,22 @@ export default function Dashboard() {
                             <ModalImportReport isOpen={isOpen} setIsOpen={setIsOpen} />
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center py-4">
+                            <div className="flex items-center gap-2 py-4">
+                                <Input
+                                    placeholder="Cari sekolah..."
+                                    value={(table.getColumn("school_name")?.getFilterValue() as string) ?? ""}
+                                    onChange={(event) =>
+                                        table.getColumn("school_name")?.setFilterValue(event.target.value)
+                                    }
+                                    className="max-w-sm"
+                                />
                                 <Input
                                     placeholder="Cari tahun..."
                                     value={(table.getColumn("year")?.getFilterValue() as string) ?? ""}
                                     onChange={(event) =>
                                         table.getColumn("year")?.setFilterValue(event.target.value)
                                     }
-                                    className="max-w-sm"
+                                    className="max-w-[200px]"
                                 />
                             </div>
                             <div className="border rounded-md">

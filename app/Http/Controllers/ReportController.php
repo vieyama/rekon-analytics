@@ -7,6 +7,7 @@ use App\Models\Priorities;
 use App\Models\Report;
 use App\Models\Rkt;
 use App\Models\RktRecommendation;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,44 +21,282 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         $userId = $user->id;
-      
+
         try {
             DB::beginTransaction();
+
+            $rtkDataList = $request->rtk;
+            $prioritiesData = $request->priorities;
+            $prioritiesLookup = [];
+
+            // Build lookup map for priorities (Reference Data)
+            if (isset($prioritiesData['identifications']) && is_array($prioritiesData['identifications'])) {
+                foreach ($prioritiesData['identifications'] as $index => $identification) {
+                    $rootProblem = $prioritiesData['root_problems'][$index] ?? '';
+                    $key = $this->normalize($identification) . '|' . $this->normalize($rootProblem);
+                    
+                    $prioritiesLookup[$key] = [
+                        'fixing_activity' => $prioritiesData['fixing_activity'][$index] ?? '',
+                        'implementation_activity' => $prioritiesData['implementation_activity'][$index] ?? '',
+                    ];
+                }
+                Log::info('Priorities Lookup Built', ['count' => count($prioritiesLookup), 'sample_keys' => array_slice(array_keys($prioritiesLookup), 0, 3)]);
+            }
+
+            // Prepare AI requests
+            $aiModel = env('VITE_AI_MODEL');
+            $apiKey = env('VITE_GEMINI_API_KEY');
+            $itemsToAnalyze = [];
+            $aiResults = [];
+
+            foreach ($rtkDataList as $index => $rkt) {
+                // Skip independent programs for AI scoring
+                $isIndependent = ($rkt['priorities_identification_score'] ?? 0) == 0;
+                
+                if (!$isIndependent) {
+                    $identification = $rkt['identification'];
+                    $rootProblem = $rkt['root_problems'];
+                    $key = $this->normalize($identification) . '|' . $this->normalize($rootProblem);
+                    
+                    if (isset($prioritiesLookup[$key])) {
+                        Log::info("Match Found for RKT index {$index}", ['key' => $key]);
+                        $reference = $prioritiesLookup[$key];
+                        
+                        $itemsToAnalyze[] = [
+                            'index' => $index,
+                            'identification' => $identification,
+                            'root_problem' => $rootProblem,
+                            'ref_fixing' => $reference['fixing_activity'],
+                            'ref_impl' => $reference['implementation_activity'],
+                            'rkt_fixing' => $rkt['fixing_activity'],
+                            'rkt_impl' => $rkt['implementation_activity'],
+                        ];
+                    } else {
+                        Log::warning("No Match Found for RKT index {$index}", ['key' => $key, 'identification' => $identification, 'root_problems' => $rootProblem]);
+                    }
+                }
+            }
+
+            // Process in just 2 requests (Fixing & Implementation) for ALL items
+            if (!empty($itemsToAnalyze)) {
+                $promptFixingData = "";
+                $promptImplData = "";
+
+                foreach ($itemsToAnalyze as $item) {
+                    $promptFixingData .= "
+                    [Item ID: {$item['index']}]
+                    - Identifikasi: {$item['identification']}
+                    - Akar Masalah: {$item['root_problem']}
+                    - Kegiatan Benahi (Ref): {$item['ref_fixing']}
+                    - Kegiatan Benahi (RKT): {$item['rkt_fixing']}
+                    -------------------";
+
+                    $promptImplData .= "
+                    [Item ID: {$item['index']}]
+                    - Identifikasi: {$item['identification']}
+                    - Akar Masalah: {$item['root_problem']}
+                    - Inspirasi Kegiatan (Ref): {$item['ref_impl']}
+                    - Kegiatan Benahi (RKT Context): {$item['rkt_fixing']}
+                    - Implementasi Kegiatan (RKT): {$item['rkt_impl']}
+                    -------------------";
+                }
+
+                $promptFixing = "Peran: Auditor Perencanaan Pendidikan.
+                Tugas: Analisis Kualitas 'Kegiatan Benahi' pada RKT.
+                
+                Kriteria Penilaian:
+                1. Keselarasan: Apakah menjawab langsung Akar Masalah?
+                2. Kualitas Parafrase: Apakah bermakna (bukan copy-paste dari referensi)?
+
+                Output JSON Array of Objects:
+                [
+                    {
+                        \"id\": <Item ID>,
+                        \"level\": \"kurang/cukup/baik\",
+                        \"score\": 0.0 - 1.0,
+                        \"recommendation\": \"Saran perbaikan operasional...\"
+                    }
+                ]
+
+                DATA:
+                {$promptFixingData}";
+
+                $promptImpl = "Peran: Auditor Perencanaan Pendidikan.
+                Tugas: Analisis Kualitas 'Implementasi Kegiatan' pada RKT.
+                
+                Kriteria Penilaian:
+                1. Keselarasan: Apakah turunan spesifik dari kegiatan benahi?
+                2. Kualitas Parafrase: Apakah bermakna (bukan copy-paste)?
+
+                Output JSON Array of Objects:
+                [
+                    {
+                        \"id\": <Item ID>,
+                        \"level\": \"kurang/cukup/baik\",
+                        \"score\": 0.0 - 1.0,
+                        \"recommendation\": \"Saran perbaikan operasional...\"
+                    }
+                ]
+
+                DATA:
+                {$promptImplData}";
+
+                try {
+                    $responses = Http::pool(function (Pool $pool) use ($aiModel, $apiKey, $promptFixing, $promptImpl) {
+                        return [
+                            $pool->as('fix')->post("https://generativelanguage.googleapis.com/v1beta/models/{$aiModel}:generateContent?key={$apiKey}", [
+                                'contents' => [['parts' => [['text' => $promptFixing]]]],
+                                'generationConfig' => ['responseMimeType' => 'application/json'],
+                            ]),
+                            $pool->as('impl')->post("https://generativelanguage.googleapis.com/v1beta/models/{$aiModel}:generateContent?key={$apiKey}", [
+                                'contents' => [['parts' => [['text' => $promptImpl]]]],
+                                'generationConfig' => ['responseMimeType' => 'application/json'],
+                            ]),
+                        ];
+                    });
+
+                    // Parse Fix Results
+                    if ($responses['fix']->successful()) {
+                        $data = $responses['fix']->json();
+                        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
+                        $results = json_decode($text, true);
+                        if (is_array($results)) {
+                            foreach ($results as $res) {
+                                if (isset($res['id'])) {
+                                    $aiResults[$res['id']]['fix'] = $res;
+                                }
+                            }
+                        }
+                    } else {
+                        Log::error('AI Fixing Request Failed', ['status' => $responses['fix']->status(), 'body' => $responses['fix']->body()]);
+                    }
+
+                    // Parse Impl Results
+                    if ($responses['impl']->successful()) {
+                        $data = $responses['impl']->json();
+                        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
+                        $results = json_decode($text, true);
+                        if (is_array($results)) {
+                            foreach ($results as $res) {
+                                if (isset($res['id'])) {
+                                    $aiResults[$res['id']]['impl'] = $res;
+                                }
+                            }
+                        }
+                    } else {
+                        Log::error('AI Implementation Request Failed', ['status' => $responses['impl']->status(), 'body' => $responses['impl']->body()]);
+                    }
+
+                } catch (\Exception $e) {
+                    Log::error('AI Pool Request Exception', ['message' => $e->getMessage()]);
+                }
+            }
+
+            // Process results and update RKT list
+            $totalPrioritiesScoreSum = 0;
+
+            foreach ($rtkDataList as $index => &$rkt) {
+                $fixData = $aiResults[$index]['fix'] ?? null;
+                $implData = $aiResults[$index]['impl'] ?? null;
+
+                if ($fixData || $implData) {
+                    // Extract AI scores
+                    $fixScore = $fixData['score'] ?? 0;
+                    $fixLevel = $fixData['level'] ?? '';
+                    $fixRec = $fixData['recommendation'] ?? '';
+                    
+                    $implScore = $implData['score'] ?? 0;
+                    $implLevel = $implData['level'] ?? '';
+                    $implRec = $implData['recommendation'] ?? '';
+
+                    // Apply weights (0.15 each)
+                    $weightedFixScore = $fixScore * 0.15;
+                    $weightedImplScore = $implScore * 0.15;
+
+                    $rkt['priorities_fixing_activity_score'] = $weightedFixScore;
+                    $rkt['priorities_activity_level'] = $fixLevel;
+                    $rkt['priorities_implementation_activity_score'] = $weightedImplScore;
+                    $rkt['priorities_implementation_level'] = $implLevel;
+                    $rkt['fixing_activity_recommendation'] = $fixRec;
+                    $rkt['implementation_activity_recommendation'] = $implRec;
+
+                    $itemTotalScore = ($rkt['priorities_identification_score'] ?? 0) +
+                                      ($rkt['priorities_root_problem_score'] ?? 0) +
+                                      $weightedFixScore +
+                                      $weightedImplScore;
+                    
+                    $rkt['priorities_score'] = $itemTotalScore;
+                    $totalPrioritiesScoreSum += $itemTotalScore;
+                    
+                    Log::info("AI Scored RKT {$index}", ['total' => $itemTotalScore, 'fix' => $fixScore, 'impl' => $implScore]);
+
+                } else {
+                    // Default / Independent / Failed AI
+                    $rkt['priorities_fixing_activity_score'] = 0;
+                    $rkt['priorities_activity_level'] = '';
+                    $rkt['priorities_implementation_activity_score'] = 0;
+                    $rkt['priorities_implementation_level'] = '';
+                    $rkt['fixing_activity_recommendation'] = '';
+                    $rkt['implementation_activity_recommendation'] = '';
+
+                    // Partial score (Identification + Root Problem only)
+                    $rkt['priorities_score'] = ($rkt['priorities_identification_score'] ?? 0) +
+                                               ($rkt['priorities_root_problem_score'] ?? 0);
+                    
+                    if (! ($rkt['priorities_identification_score'] ?? 0) == 0) {
+                         $totalPrioritiesScoreSum += $rkt['priorities_score'];
+                    }
+                }
+            }
+            unset($rkt); // Break reference
+
+            // Calculate Final Priorities Score
+            // Formula: Sum / (Total RTK - Independent + Unselected) * 100
+            $prioritiesSchoolIndependentScore = $request->report['priorities_school_independent_program_score'] ?? 0;
+            $unselectedPrioritiesCount = $request->report['unselected_priorities_count'] ?? 0;
+            $totalRktData = count($rtkDataList);
+
+            $denominator = ($totalRktData - $prioritiesSchoolIndependentScore) + $unselectedPrioritiesCount;
+            $finalPrioritiesScore = $denominator > 0 ? ($totalPrioritiesScoreSum / $denominator) * 100 : 0;
+
             // 1. Insert into reports table
             $reportId = DB::table('reports')->insertGetId([
                 'year' => $request->report['year'],
-                'user_id' => $userId,   
+                'user_id' => $userId,
                 'school_name' => $request->report['school_name'],
-                'priorities_score' => $request->report['priorities_score'],
-                'aggregates_score' => $request->report['aggregates_score'],
-                'priorities_school_independent_program_score' => $request->report['priorities_school_independent_program_score'] ?? 0,
+                'priorities_score' => $finalPrioritiesScore,
+                'aggregates_score' => 0,
+                'priorities_school_independent_program_score' => $prioritiesSchoolIndependentScore,
                 'aggregates_school_independent_program_score' => $request->report['aggregates_school_independent_program_score'] ?? 0,
-                'unselected_priorities_count' => $request->report['unselected_priorities_count'] ?? 0,
-                'arkas_score' => $request->report['arkas_score'] ?? 0,
-                "created_at" =>  now(), # new \Datetime()
-                "updated_at" => now(),  # new \Datetime()
+                'unselected_priorities_count' => $unselectedPrioritiesCount,
+                'arkas_score' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             // 2. Insert related rkts
-            foreach ($request->rtk as $rktData) {
+            foreach ($rtkDataList as $rktData) {
                 Rkt::create([
                     'report_id' => $reportId,
                     'identification' => $rktData['identification'],
                     'root_problem' => $rktData['root_problems'],
                     'fixing_activity' => $rktData['fixing_activity'],
-                    'fixing_activity_recommendation' => $rktData['fixing_activity_recommendation'] ?? null,
                     'implementation_activity' => $rktData['implementation_activity'],
                     'is_require_cost' => $rktData['is_require_cost'] ?? false,
+                    'fixing_activity_recommendation' => $rktData['fixing_activity_recommendation'],
+                    'implementation_activity_recommendation' => $rktData['implementation_activity_recommendation'],
                     'priorities_identification_score' => $rktData['priorities_identification_score'],
                     'priorities_root_problem_score' => $rktData['priorities_root_problem_score'],
                     'priorities_fixing_activity_score' => $rktData['priorities_fixing_activity_score'],
+                    'priorities_activity_level' => $rktData['priorities_activity_level'],
                     'priorities_implementation_activity_score' => $rktData['priorities_implementation_activity_score'],
+                    'priorities_implementation_level' => $rktData['priorities_implementation_level'],
                     'priorities_score' => $rktData['priorities_score'],
                     'aggregates_identification_score' => $rktData['aggregates_identification_score'],
                     'aggregates_root_problem_score' => $rktData['aggregates_root_problem_score'],
-                    'aggregates_fixing_activity_score' => $rktData['aggregates_fixing_activity_score'],
-                    'aggregates_implementation_activity_score' => $rktData['aggregates_implementation_activity_score'],
-                    'aggregates_score' => $rktData['aggregates_score'],
+                    'aggregates_fixing_activity_score' => 0,
+                    'aggregates_implementation_activity_score' => 0,
+                    'aggregates_score' => 0,
                 ]);
             }
 
@@ -81,11 +320,12 @@ class ReportController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Data saved.');
+            return $this->generateRecommendation($reportId);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Insert failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return redirect()->back()->with('error', 'Insert failed: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Insert failed: '.$e->getMessage());
         }
     }
 
@@ -114,8 +354,8 @@ class ReportController extends Controller
                 }
             } else {
                 $priorities = Priorities::where('report_id', $id)->first();
-                
-                if (!$priorities) {
+
+                if (! $priorities) {
                     return redirect()->back()->with('error', 'Priorities data not found.');
                 }
 
@@ -133,12 +373,12 @@ class ReportController extends Controller
                     ];
                 }
             }
-            
+
             $jsonInput = json_encode($dataToAnalyze, JSON_UNESCAPED_UNICODE);
             $itemCount = count($dataToAnalyze);
-            
+
             Log::info('Preparing Gemini Prompt', ['item_count' => $itemCount]);
-            
+
             $prompt = "Peran: Anda adalah seorang konsultan perencanaan pendidikan.
 
                     Tugas: Analisis data Rapor Pendidikan berikut yang berisi {$itemCount} item.
@@ -174,34 +414,36 @@ class ReportController extends Controller
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => $prompt]
-                        ]
-                    ]
+                            ['text' => $prompt],
+                        ],
+                    ],
                 ],
                 'generationConfig' => [
-                    'responseMimeType' => 'application/json'
-                ]
+                    'responseMimeType' => 'application/json',
+                ],
             ]);
-            
+
             Log::info('Gemini API Response', ['status' => $response->status(), 'body' => $response->body()]);
 
             if ($response->failed()) {
                 Log::error('Gemini API Error', ['response' => $response->body()]);
+
                 return redirect()->back()->with('error', 'Failed to generate recommendation from AI.');
             }
 
             $responseData = $response->json();
             $generatedText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? '';
-            
+
             // Clean up Markdown code blocks if present
             $generatedText = str_replace(['```json', '```'], '', $generatedText);
             $recommendationDataArray = json_decode($generatedText, true);
 
             Log::info('Parsed Recommendation Data', ['data' => $recommendationDataArray, 'raw_text' => $generatedText]);
 
-            if (!$recommendationDataArray || !is_array($recommendationDataArray)) {
-                 Log::error('Gemini API Parse Error', ['text' => $generatedText]);
-                 return redirect()->back()->with('error', 'Failed to parse AI response.');
+            if (! $recommendationDataArray || ! is_array($recommendationDataArray)) {
+                Log::error('Gemini API Parse Error', ['text' => $generatedText]);
+
+                return redirect()->back()->with('error', 'Failed to parse AI response.');
             }
 
             // Ensure it's a list of objects, not a single object
@@ -235,13 +477,13 @@ class ReportController extends Controller
             // If we expected 14 but got 1, DO NOT delete the other 13.
             if ($existingRecommendations->count() > count($recommendationDataArray)) {
                 if (count($recommendationDataArray) >= $itemCount) {
-                     $existingRecommendations->slice(count($recommendationDataArray))->each(function ($item) {
+                    $existingRecommendations->slice(count($recommendationDataArray))->each(function ($item) {
                         $item->delete();
                     });
                 } else {
                     Log::warning('Gemini returned fewer items than expected. Skipping deletion of excess records.', [
                         'expected' => $itemCount,
-                        'received' => count($recommendationDataArray)
+                        'received' => count($recommendationDataArray),
                     ]);
                 }
             }
@@ -252,7 +494,20 @@ class ReportController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Generate Recommendation Error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'An error occurred: '.$e->getMessage());
         }
+    }
+
+    private function normalize($str): string
+    {
+        if (is_array($str)) {
+            return '';
+        }
+        $str = (string) $str;
+        // Remove prefix like "A.1 ", "B.2.1 "
+        $str = preg_replace('/^[A-Z](\.\d+)+\s*/', '', $str);
+        // Lowercase and remove all non-alphanumeric characters to be robust against whitespace differences
+        return preg_replace('/[^a-z0-9]/', '', strtolower($str));
     }
 }

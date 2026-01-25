@@ -29,6 +29,9 @@ export function ModalImportReport({ isOpen, setIsOpen }: { isOpen: boolean, setI
                 reset()
                 setIsOpen(false)
             })
+            .catch(() => {
+                // Keep modal open on error, maybe show error message
+            })
     };
 
     return (

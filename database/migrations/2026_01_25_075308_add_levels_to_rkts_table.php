@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rkts', function (Blueprint $table) {
-            //
+            $table->string('priorities_activity_level')->nullable()->after('priorities_fixing_activity_score');
+            $table->string('priorities_implementation_level')->nullable()->after('priorities_implementation_activity_score');
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('rkts', function (Blueprint $table) {
-            //
+            $table->dropColumn(['priorities_activity_level', 'priorities_implementation_level']);
         });
     }
 };
