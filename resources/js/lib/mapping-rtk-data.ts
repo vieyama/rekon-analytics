@@ -32,7 +32,7 @@ export function normalize(str: string) {
     return str.replace(/^[A-Z](\.\d+)+\s*/, '').toLowerCase().trim();
 }
 
-export function scoringData(
+export async function scoringData(
     primaryData: {
         identification: string;
         root_problems: string;
@@ -50,7 +50,8 @@ export function scoringData(
     const normalizedFixingActivity = fixingActivityData.map(normalize);
     const normalizedImplementationActivity = implementationActivityData.map(normalize);
 
-    return primaryData.map((item) => {
+    // Helper for parallel processing
+    const processItem = async (item: any) => {
         const identification = normalize(item.identification);
         const rootProblems = normalize(item.root_problems);
         const fixingActivity = normalize(item.fixing_activity);
@@ -60,28 +61,43 @@ export function scoringData(
 
         // Step 1
         const hasIdentification = normalizedIdentification.includes(identification);
-        const identification_score = hasIdentification ? 100 : 0;
+        const identification_score = hasIdentification ? 0.4 : 0;
 
         // Step 2
         const hasRootProblem = hasIdentification && normalizedRootProblems.includes(rootProblems);
-        const root_problem_score = hasRootProblem ? 100 : 0;
+        const root_problem_score = hasRootProblem ? 0.3 : 0;
 
         // Step 3
         let fixing_activity_score = 0;
-        if (root_problem_score === 100) {
+        let fixing_activity_recommendation = null;
+
+        if (root_problem_score > 0) {
+            // Find the best matching fixing activity from the report data to send to AI as context
             const { bestMatch } = stringSimilarity.findBestMatch(fixingActivity, normalizedFixingActivity);
-            fixing_activity_score = Math.round(bestMatch.rating * 100);
+            const reportFixingActivity = bestMatch.target; // Closest match in report data
+
+            // Import dynamically to avoid circular dependency issues if any, or just standard import
+            const { generateFixingActivityScore } = await import('./ai-service');
+            const aiResult = await generateFixingActivityScore({
+                identification: item.identification,
+                rootProblems: item.root_problems,
+                fixingActivity: reportFixingActivity, // From Report
+                rktFixingActivity: item.fixing_activity // From User Input
+            });
+
+            fixing_activity_score = parseFloat((aiResult.score * 0.15).toFixed(4));
+            fixing_activity_recommendation = aiResult.recommendation;
         }
 
         // Step 4
         let implementation_activity_score = 0;
         if (fixing_activity_score > 0 && implementationActivities.length > 0) {
-            const scores = implementationActivities.map(normAct => {
+            const scores = implementationActivities.map((normAct: string) => {
                 const { bestMatch } = stringSimilarity.findBestMatch(normAct, normalizedImplementationActivity);
                 return bestMatch.rating;
             });
             const maxScore = Math.max(...scores);
-            implementation_activity_score = parseFloat((maxScore * 100).toFixed(2));
+            implementation_activity_score = parseFloat((maxScore * 0.15).toFixed(4));
 
         }
 
@@ -92,7 +108,7 @@ export function scoringData(
             fixing_activity_score +
             implementation_activity_score;
 
-        final_score = parseFloat((totalScore / 400 * 100).toFixed(2));
+        final_score = parseFloat((totalScore * 100).toFixed(2));
 
         const is_school_independent_program = identification_score === 0 || root_problem_score === 0;
 
@@ -102,7 +118,10 @@ export function scoringData(
             fixing_activity_score,
             implementation_activity_score,
             final_score,
-            is_school_independent_program
+            is_school_independent_program,
+            fixing_activity_recommendation
         };
-    });
+    };
+
+    return Promise.all(primaryData.map(item => processItem(item)));
 }

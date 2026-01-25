@@ -45,6 +45,7 @@ class ReportController extends Controller
                     'identification' => $rktData['identification'],
                     'root_problem' => $rktData['root_problems'],
                     'fixing_activity' => $rktData['fixing_activity'],
+                    'fixing_activity_recommendation' => $rktData['fixing_activity_recommendation'] ?? null,
                     'implementation_activity' => $rktData['implementation_activity'],
                     'is_require_cost' => $rktData['is_require_cost'] ?? false,
                     'priorities_identification_score' => $rktData['priorities_identification_score'],
@@ -162,7 +163,7 @@ class ReportController extends Controller
                     Data Input ({$itemCount} item):
                     {$jsonInput}";
 
-            $aiModel = 'gemini-2.5-flash';
+            $aiModel = env('VITE_AI_MODEL');
             $apiKey = env('VITE_GEMINI_API_KEY');
 
             Log::info('Sending request to Gemini', ['model' => $aiModel, 'report_id' => $id]);

@@ -77,7 +77,7 @@ export const columns: ColumnDef<TempDataType>[] = [
                         })
                     },
                     onError: () => {
-                         toast({
+                        toast({
                             title: "Error",
                             description: "Failed to generate recommendation",
                             variant: "destructive"
