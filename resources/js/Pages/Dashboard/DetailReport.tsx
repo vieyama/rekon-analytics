@@ -57,9 +57,16 @@ export default function DetailReport() {
     };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isIndependentModalOpen, setIsIndependentModalOpen] = useState(false);
     const [selectedRkt, setSelectedRkt] = useState<Rkt | null>(null);
     const [selectedType, setSelectedType] = useState<'activity' | 'implementation' | null>(null);
     const [recommendationText, setRecommendationText] = useState<string>('');
+
+    const handleRowClick = (isIndependent: boolean) => {
+        if (isIndependent) {
+            setIsIndependentModalOpen(true);
+        }
+    };
 
     const handleCellClick = (rkt: Rkt, type: 'activity' | 'implementation', level: string | null) => {
         if (!level) return;
@@ -154,23 +161,37 @@ export default function DetailReport() {
                                                 console.log(rkt)
                                                 const isIndependent = rkt?.priorities_identification_score === 0 || rkt?.priorities_root_problem_score === 0
                                                 return (
-                                                    <TableRow key={rkt.id} className="hover:bg-transparent">
+                                                    <TableRow
+                                                        key={rkt.id}
+                                                        className={isIndependent ? "bg-gray-200 hover:bg-gray-200 cursor-pointer" : "hover:bg-transparent"}
+                                                        onClick={() => handleRowClick(isIndependent)}
+                                                    >
                                                         <TableCell className="text-center">{index + 1}</TableCell>
-                                                    <TableCell>{rkt.identification}</TableCell>
-                                                    <TableCell>{rkt.root_problem}</TableCell>
-                                                    <TableCell
-                                                        className={getRowColor(isIndependent, 'activity', rkt.priorities_activity_level || '')}
-                                                        onClick={() => handleCellClick(rkt, 'activity', rkt.priorities_activity_level || '')}
-                                                    >
-                                                        {rkt.fixing_activity}
-                                                    </TableCell>
-                                                    <TableCell
-                                                        className={getRowColor(isIndependent, 'implementation', rkt.priorities_implementation_level || '')}
-                                                        onClick={() => handleCellClick(rkt, 'implementation', rkt.priorities_implementation_level || '')}
-                                                    >
-                                                        {rkt.implementation_activity}
-                                                    </TableCell>
-                                                    <TableCell>{formatCost(rkt.is_require_cost)}</TableCell>
+                                                        <TableCell>{rkt.identification}</TableCell>
+                                                        <TableCell>{rkt.root_problem}</TableCell>
+                                                        <TableCell
+                                                            className={getRowColor(isIndependent, 'activity', rkt.priorities_activity_level || '')}
+                                                            onClick={(e) => {
+                                                                if (!isIndependent) {
+                                                                    e.stopPropagation();
+                                                                    handleCellClick(rkt, 'activity', rkt.priorities_activity_level || '');
+                                                                }
+                                                            }}
+                                                        >
+                                                            {rkt.fixing_activity}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            className={getRowColor(isIndependent, 'implementation', rkt.priorities_implementation_level || '')}
+                                                            onClick={(e) => {
+                                                                if (!isIndependent) {
+                                                                    e.stopPropagation();
+                                                                    handleCellClick(rkt, 'implementation', rkt.priorities_implementation_level || '');
+                                                                }
+                                                            }}
+                                                        >
+                                                            {rkt.implementation_activity}
+                                                        </TableCell>
+                                                        <TableCell>{formatCost(rkt.is_require_cost)}</TableCell>
                                                     </TableRow>
                                                 )
                                             })
@@ -249,6 +270,19 @@ export default function DetailReport() {
                                 Tolak
                             </Button>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isIndependentModalOpen} onOpenChange={setIsIndependentModalOpen}>
+                    <DialogContent className="sm:max-w-[600px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl">
+                                RKT berdasarkan program mandiri sekolah
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p className="text-gray-700">Data RKT tidak berbasis Rapor Pendidikan.</p>
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>
