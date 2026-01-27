@@ -216,6 +216,11 @@ DB_DATABASE=database_name (rekon)
 DB_USERNAME=mysql_username (root)
 DB_PASSWORD=mysql_password (root_pass)
 ```
+- add Gemini API configuration:
+```
+VITE_GEMINI_API_KEY=GEMINI_API_KEY
+VITE_AI_MODEL=gemini-2.5-flash-lite
+```
 
 
 ### Migrate database
