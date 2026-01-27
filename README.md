@@ -20,7 +20,7 @@ This combination is sure to make development smooth and fun! Let’s rock this p
 
 # Installation Guide
 
-This guide provides step-by-step instructions to install **PHP 8.2** and **Node.js 20** using **NVM** (Node Version Manager) for both **Linux** and **Windows** users.
+This guide provides step-by-step instructions to install **PHP 8.2**, **Node.js 20** using **NVM** (Node Version Manager), and **MySQL** for both **Linux** and **Windows** users.
 
 ---
 
@@ -126,11 +126,11 @@ Select a directory for global Node.js installations (e.g., C:\Program Files\node
 #### **Step 2.3: Install Node.js 20**
 Open a command prompt and run:
 
-bash
-Copy
-Edit
+```bash
 nvm install 20
 nvm use 20
+```
+
 #### **Step 2.4: Verify Installation**
 Check the installed Node.js and npm versions:
 
@@ -139,16 +139,44 @@ node -v
 npm -v
 ```
 
+## **3. Install MySQL**
+
+### **For Windows Users**
+
+#### **Step 3.1: Download MySQL Installer**
+Visit the official MySQL download page: https://dev.mysql.com/downloads/installer/
+Download the **mysql-installer-web-community** or **mysql-installer-community** version.
+
+#### **Step 3.2: Install MySQL Server**
+1. Run the downloaded installer.
+2. Choose **Custom** or **Developer Default** setup type.
+3. Ensure **MySQL Server** is selected.
+4. Click **Next** and follow the installation wizard.
+
+#### **Step 3.3: Configure MySQL**
+1. Set the **Root Password** (remember this for your `.env` file).
+2. Create a new user if needed.
+3. Keep the default port **3306**.
+4. Complete the configuration and finish the installation.
+
+#### **Step 3.4: Verify Installation**
+Open the **MySQL Command Line Client** or use a terminal:
+```bash
+mysql -u root -p
+```
+Enter the password you set during installation.
+
 ## *Summary*
-- PHP 8.2 and Node.js 20 are installed successfully on your system.
+- PHP 8.2, Node.js 20, and MySQL are installed successfully on your system.
 - Linux users installed Node.js 20 using NVM for Linux.
-- Windows users installed Node.js 20 using NVM for Windows.
+- Windows users installed Node.js 20 using NVM for Windows and MySQL using the installer.
 
 For additional support, refer to:
 
 - [PHP Documentation](https://www.php.net/manual/en/install.php)
 - [NVM for Linux](https://github.com/nvm-sh/nvm)
 - [NVM for Windows](https://github.com/coreybutler/nvm-windows)
+- [MySQL Documentation](https://dev.mysql.com/doc/)
 ## Run Locally
 
 ### Install dependencies
