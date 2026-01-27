@@ -36,4 +36,9 @@ class Report extends Model
     {
         return $this->hasMany(Aggregates::class, 'report_id', 'id');
     }
+
+    public function arkas(): HasMany
+    {
+        return $this->hasMany(Arkas::class, 'report_id', 'id');
+    }
 }

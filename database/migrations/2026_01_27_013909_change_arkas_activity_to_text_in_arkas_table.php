@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('rkts', function (Blueprint $table) {
-            $table->longText('fixing_activity_recommendation')->nullable();
+        Schema::table('arkas', function (Blueprint $table) {
+            $table->text('arkas_activity')->nullable()->change();
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('rkts', function (Blueprint $table) {
-            $table->dropColumn('fixing_activity_recommendation');
+        Schema::table('arkas', function (Blueprint $table) {
+            $table->string('arkas_activity')->nullable()->change();
         });
     }
 };

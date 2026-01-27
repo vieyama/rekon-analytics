@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('rkts', function (Blueprint $table) {
-            $table->longText('fixing_activity_recommendation')->nullable();
+        Schema::create('arkas_products', function (Blueprint $table) {
+            $table->id();
+            $table->string('product_code');
+            $table->string('product_name');
+            $table->string('unit');
+            $table->decimal('max_price', 15, 2);
+            $table->timestamps();
         });
     }
 
@@ -21,8 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('rkts', function (Blueprint $table) {
-            $table->dropColumn('fixing_activity_recommendation');
-        });
+        Schema::dropIfExists('arkas_products');
     }
 };

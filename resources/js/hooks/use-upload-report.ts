@@ -38,7 +38,22 @@ export function useFileUploader() {
 
                         const year = reportTitle[0]?.[0]?.slice(-4)
                         const school_name = fullTitle.replace(year, '').replace('RKT', '').replace('REKOMENDASI PRIORITAS PBD', '').replace('TAHUN', '').trim();
+                        const arkasData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[5]], { header: 1 }) as any[][];
+                        const arkasRows = arkasData.slice(7);
+                        const arkasProcessedData = arkasRows.map(row => ({
+                            fixing_activity: row[1],
+                            implementation_description: row[2],
+                            arkas_activity: row[3],
+                            arkas_activity_description: row[4],
+                            budget_month: row[5],
+                            quantity: Number(row[6]) || 0,
+                            unit: row[7],
+                            unit_price: Number(row[8]) || 0,
+                            total_price: Number(row[9]) || 0
+                        })).filter(item => item.fixing_activity);
 
+                        const arkasScore = arkasProcessedData.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+                        
                         // rtk data
                         const rtkData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[4]], { header: 1 });
 
@@ -87,8 +102,10 @@ export function useFileUploader() {
                                 school_name,
                                 priorities_school_independent_program_score: totals.reduce((sum, t) => sum + (t.total_priorities_school_independent_program ? 1 : 0), 0),
                                 aggregates_school_independent_program_score: totals.reduce((sum, t) => sum + (t.total_aggregates_school_independent_program ? 1 : 0), 0),
-                                unselected_priorities_count: unselectedPriorities.length
+                                unselected_priorities_count: unselectedPriorities.length,
+                                arkas_score: arkasScore
                             },
+                            arkas: arkasProcessedData,
                             rtk: rtkProcessedData.map((rtk, index) => ({
                                 ...rtk,
                                 priorities_identification_score: (prioritiesScore && Array.isArray(prioritiesScore) ? prioritiesScore[index]?.identification_score : 0),
@@ -128,6 +145,7 @@ export function useFileUploader() {
         } catch (error) {
             console.error(error);
             setStatus('Error');
+            return;
         }
         await delay(500); // simulate uploaded waiting
         setStatus('Finished');

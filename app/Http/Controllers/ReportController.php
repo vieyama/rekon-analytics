@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Aggregates;
+use App\Models\Arkas;
 use App\Models\Priorities;
 use App\Models\Report;
 use App\Models\Rkt;
@@ -101,14 +102,58 @@ class ReportController extends Controller
                     -------------------";
                 }
 
-                $promptFixing = "Peran: Auditor Perencanaan Pendidikan.
-                Tugas: Analisis Kualitas 'Kegiatan Benahi' pada RKT.
-                
-                Kriteria Penilaian:
-                1. Keselarasan: Apakah menjawab langsung Akar Masalah?
-                2. Kualitas Parafrase: Apakah bermakna (bukan copy-paste dari referensi)?
+                $promptFixing = "PERAN:
+                Anda adalah Auditor Perencanaan Pendidikan Nasional.
 
-                Output JSON Array of Objects:
+                TUGAS:
+                Melakukan analisis kualitas \"Kegiatan Benahi\" pada RKT secara objektif dan konsisten.
+
+                KRITERIA PENILAIAN (WAJIB DIGUNAKAN):
+                1. Keselarasan:
+                - Apakah Kegiatan Benahi (RKT) menjawab langsung Akar Masalah?
+                2. Kualitas Parafrase:
+                - Apakah rumusan kegiatan bermakna operasional dan kontekstual,
+                    bukan sekadar parafrase dangkal atau copy-paste dari referensi?
+
+                RUBRIK PENILAIAN (IKAT, TIDAK BOLEH MENYIMPANG):
+
+                - level: \"baik\"
+                score: 0.80 - 1.00
+                kriteria:
+                - Kegiatan RKT langsung menjawab akar masalah
+                - Fokus pada perubahan praktik pembelajaran/perilaku/kebijakan
+                - Tidak dominan sarana atau administratif
+
+                - level: \"cukup\"
+                score: 0.50 - 0.79
+                kriteria:
+                - Kegiatan RKT relevan tetapi tidak langsung
+                - Masih bersifat pendukung atau belum menyasar praktik inti
+                - Dampak terhadap akar masalah masih tidak langsung
+
+                - level: \"kurang\"
+                score: 0.00 - 0.49
+                kriteria:
+                - Kegiatan RKT tidak menjawab akar masalah
+                - Bersifat administratif, fisik, atau simbolik
+                - Tidak berdampak pada perubahan pembelajaran/perilaku
+
+                ATURAN PENILAIAN:
+                - Level HARUS konsisten dengan rentang score
+                - Jangan memberi score yang sama persis untuk semua item
+                - Gunakan bahasa kebijakan pendidikan (formal, lugas)
+                - Jangan menyalin frasa dari Kegiatan Benahi (Ref)
+                - Rekomendasi harus operasional dan dapat dilaksanakan
+
+                LANGKAH ANALISIS (WAJIB DIIKUTI):
+                1. Cocokkan Akar Masalah dengan Kegiatan Benahi (RKT)
+                2. Tentukan tingkat keterhubungan:
+                - langsung / tidak langsung / tidak relevan
+                3. Tetapkan level berdasarkan rubrik
+                4. Tetapkan score sesuai level
+                5. Rumuskan rekomendasi perbaikan
+
+                FORMAT OUTPUT (WAJIB JSON VALID):
                 [
                     {
                         \"id\": <Item ID>,
@@ -121,14 +166,74 @@ class ReportController extends Controller
                 DATA:
                 {$promptFixingData}";
 
-                $promptImpl = "Peran: Auditor Perencanaan Pendidikan.
-                Tugas: Analisis Kualitas 'Implementasi Kegiatan' pada RKT.
-                
-                Kriteria Penilaian:
-                1. Keselarasan: Apakah turunan spesifik dari kegiatan benahi?
-                2. Kualitas Parafrase: Apakah bermakna (bukan copy-paste)?
+                $promptImpl = "PERAN:
+                Anda adalah Auditor Perencanaan Pendidikan Nasional.
 
-                Output JSON Array of Objects:
+                TUGAS:
+                Menganalisis kualitas \"Implementasi Kegiatan\" pada RKT secara objektif dan konsisten.
+
+                OBJEK PENILAIAN:
+                \"Implementasi Kegiatan\" adalah tindakan nyata di lapangan yang HARUS merupakan
+                turunan langsung dari \"Kegiatan Benahi\" dalam RKT.
+
+                KRITERIA PENILAIAN (WAJIB DIGUNAKAN):
+
+                1. Keselarasan:
+                - Apakah Implementasi Kegiatan merupakan turunan spesifik dari Kegiatan Benahi (RKT Context)?
+                - Implementasi TIDAK dinilai dari Inspirasi Kegiatan secara langsung,
+                    tetapi dari Kegiatan Benahi sebagai konteks utama.
+
+                2. Kualitas Parafrase:
+                - Apakah rumusan implementasi bermakna operasional dan kontekstual,
+                    bukan sekadar copy-paste atau parafrase dangkal?
+
+                DEFINISI TURUNAN SPESIFIK:
+                Implementasi Kegiatan dianggap turunan spesifik jika memenuhi seluruh unsur berikut:
+                - merupakan tindak lanjut langsung dari Kegiatan Benahi,
+                - dilakukan oleh pelaku utama (guru dan/atau kepala satuan pendidikan),
+                - berdampak pada praktik pembelajaran, budaya sekolah, atau kebijakan,
+                - BUKAN aktivitas administratif, inventarisasi, pemeliharaan fisik, atau rutinitas umum.
+
+                RUBRIK PENILAIAN (IKAT, TIDAK BOLEH MENYIMPANG):
+
+                - level: \"baik\"
+                score: 0.80 - 1.00
+                kriteria:
+                - Implementasi merupakan praktik nyata di kelas atau sekolah
+                - Langsung diturunkan dari Kegiatan Benahi
+                - Berdampak pada perubahan praktik pembelajaran/perilaku/kebijakan
+
+                - level: \"cukup\"
+                score: 0.50 - 0.79
+                kriteria:
+                - Implementasi masih relevan dengan Kegiatan Benahi
+                - Namun belum menyentuh praktik inti atau masih bersifat pendukung
+                - Dampak terhadap perubahan masih tidak langsung
+
+                - level: \"kurang\"
+                score: 0.00 - 0.49
+                kriteria:
+                - Implementasi tidak diturunkan dari Kegiatan Benahi
+                - Bersifat administratif, teknis, simbolik, atau rutinitas
+                - Tidak berdampak pada pembelajaran, budaya, atau kebijakan
+
+                ATURAN PENILAIAN:
+                - Level HARUS konsisten dengan rentang score
+                - Hindari memberi score identik pada semua item
+                - Gunakan bahasa kebijakan pendidikan (formal dan lugas)
+                - Jangan menyalin frasa dari Inspirasi atau Kegiatan Benahi
+                - Rekomendasi harus operasional dan dapat dilaksanakan
+
+                LANGKAH ANALISIS (WAJIB DIIKUTI):
+                1. Identifikasi hubungan antara Kegiatan Benahi dan Implementasi Kegiatan
+                2. Tentukan tingkat turunan:
+                - langsung / tidak langsung / tidak diturunkan
+                3. Tentukan level berdasarkan rubrik
+                4. Tetapkan score sesuai level
+                5. Susun rekomendasi perbaikan
+
+                FORMAT OUTPUT (WAJIB JSON VALID):
+
                 [
                     {
                         \"id\": <Item ID>,
@@ -140,7 +245,7 @@ class ReportController extends Controller
 
                 DATA:
                 {$promptImplData}";
-
+                
                 try {
                     $responses = Http::pool(function (Pool $pool) use ($aiModel, $apiKey, $promptFixing, $promptImpl) {
                         return [
@@ -269,7 +374,7 @@ class ReportController extends Controller
                 'priorities_school_independent_program_score' => $prioritiesSchoolIndependentScore,
                 'aggregates_school_independent_program_score' => $request->report['aggregates_school_independent_program_score'] ?? 0,
                 'unselected_priorities_count' => $unselectedPrioritiesCount,
-                'arkas_score' => 0,
+                'arkas_score' => $request->report['arkas_score'] ?? 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -318,6 +423,24 @@ class ReportController extends Controller
                 'implementation_activities' => json_encode($request->aggregates['implementation_activity']),
             ]);
 
+            // 5. Insert related arkas
+            if ($request->has('arkas')) {
+                foreach ($request->arkas as $arkasData) {
+                    Arkas::create([
+                        'report_id' => $reportId,
+                        'fixing_activity' => $arkasData['fixing_activity'],
+                        'implementation_description' => $arkasData['implementation_description'],
+                        'arkas_activity' => $arkasData['arkas_activity'],
+                        'arkas_activity_description' => $arkasData['arkas_activity_description'],
+                        'budget_month' => $arkasData['budget_month'],
+                        'quantity' => $arkasData['quantity'],
+                        'unit' => $arkasData['unit'],
+                        'unit_price' => $arkasData['unit_price'],
+                        'total_price' => $arkasData['total_price'],
+                    ]);
+                }
+            }
+
             DB::commit();
 
             return $this->generateRecommendation($reportId);
@@ -340,38 +463,26 @@ class ReportController extends Controller
     public function generateRecommendation($id): RedirectResponse
     {
         try {
-            $rkts = Rkt::where('report_id', $id)->get();
             $dataToAnalyze = [];
 
-            if ($rkts->isNotEmpty()) {
-                foreach ($rkts as $rkt) {
-                    $dataToAnalyze[] = [
-                        'identifikasi' => $rkt->identification,
-                        'sub_indikator_akar_masalah' => $rkt->root_problem,
-                        'kegiatan_benahi' => $rkt->fixing_activity,
-                        'inspirasi_kegiatan' => $rkt->implementation_activity,
-                    ];
-                }
-            } else {
-                $priorities = Priorities::where('report_id', $id)->first();
+            $priorities = Priorities::where('report_id', $id)->first();
 
-                if (! $priorities) {
-                    return redirect()->back()->with('error', 'Priorities data not found.');
-                }
+            if (! $priorities) {
+                return redirect()->back()->with('error', 'Priorities data not found.');
+            }
 
-                $identifications = json_decode($priorities->identifications, true) ?? [];
-                $rootProblems = json_decode($priorities->root_problems, true) ?? [];
-                $fixingActivities = json_decode($priorities->fixing_activities, true) ?? [];
-                $implementationActivities = json_decode($priorities->implementation_activities, true) ?? [];
-
-                foreach ($identifications as $index => $identification) {
-                    $dataToAnalyze[] = [
-                        'identifikasi' => $identification,
-                        'sub_indikator_akar_masalah' => $rootProblems[$index] ?? '',
-                        'kegiatan_benahi' => $fixingActivities[$index] ?? '',
-                        'inspirasi_kegiatan' => $implementationActivities[$index] ?? '',
-                    ];
-                }
+            $identifications = json_decode($priorities->identifications, true) ?? [];
+            $rootProblems = json_decode($priorities->root_problems, true) ?? [];
+            $fixingActivities = json_decode($priorities->fixing_activities, true) ?? [];
+            $implementationActivities = json_decode($priorities->implementation_activities, true) ?? [];
+            
+            foreach ($identifications as $index => $identification) {
+                $dataToAnalyze[] = [
+                    'identifikasi' => $identification,
+                    'sub_indikator_akar_masalah' => $rootProblems[$index] ?? '',
+                    'kegiatan_benahi' => $fixingActivities[$index] ?? '',
+                    'inspirasi_kegiatan' => $implementationActivities[$index] ?? '',
+                ];
             }
 
             $jsonInput = json_encode($dataToAnalyze, JSON_UNESCAPED_UNICODE);

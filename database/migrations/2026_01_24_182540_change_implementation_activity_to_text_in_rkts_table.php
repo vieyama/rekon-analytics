@@ -21,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        \Illuminate\Support\Facades\DB::statement('UPDATE rkts SET implementation_activity = JSON_QUOTE(implementation_activity) WHERE NOT JSON_VALID(implementation_activity)');
+
         Schema::table('rkts', function (Blueprint $table) {
             $table->jsonb('implementation_activity')->change();
         });
