@@ -31,6 +31,7 @@ class DashboardController extends Controller
         $rkts = Rkt::where('report_id', $reportId)->get();
         $recommendations = RktRecommendation::where('report_id', $reportId)->get();
         $report = Report::find($reportId);
-        return Inertia::render('Dashboard/DetailReport', ['rkts' => $rkts, 'recommendations' => $recommendations, 'report' => $report]);
+        $arkas = \App\Models\Arkas::where('report_id', $reportId)->get();
+        return Inertia::render('Dashboard/DetailReport', ['rkts' => $rkts, 'recommendations' => $recommendations, 'report' => $report, 'arkas' => $arkas]);
     }
 }

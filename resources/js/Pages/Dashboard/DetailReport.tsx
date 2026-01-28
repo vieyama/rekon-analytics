@@ -18,6 +18,7 @@ import {
 } from "@/Components/ui/dialog"
 import { Button } from '@/Components/ui/button';
 import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs"
 
 interface Rkt {
     id: number;
@@ -49,11 +50,25 @@ interface Report {
     priorities_score: number;
 }
 
+interface Arkas {
+    id: number;
+    fixing_activity: string;
+    implementation_description: string;
+    arkas_activity: string;
+    arkas_activity_description: string;
+    budget_month: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total_price: number;
+}
+
 export default function DetailReport() {
-    const { rkts, recommendations, report } = usePage().props as unknown as {
+    const { rkts, recommendations, report, arkas } = usePage().props as unknown as {
         rkts: Rkt[],
         recommendations: RktRecommendation[],
-        report: Report
+        report: Report,
+        arkas: Arkas[]
     };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -137,119 +152,192 @@ export default function DetailReport() {
                         </p>
                     </div>
 
-                    {/* Table 1: RKTs */}
-                    <Card className="w-full">
-                        <CardHeader>
-                            <CardTitle>Rencana Kerja Tahunan</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="border rounded-md overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[50px]">No</TableHead>
-                                            <TableHead>Identifikasi</TableHead>
-                                            <TableHead>Akar Masalah</TableHead>
-                                            <TableHead>Kegiatan Benahi</TableHead>
-                                            <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
-                                            <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {rkts && rkts.length > 0 ? (
-                                            rkts.map((rkt, index) => {
-                                                console.log(rkt)
-                                                const isIndependent = rkt?.priorities_identification_score === 0 || rkt?.priorities_root_problem_score === 0
-                                                return (
-                                                    <TableRow
-                                                        key={rkt.id}
-                                                        className={isIndependent ? "bg-gray-200 hover:bg-gray-200 cursor-pointer" : "hover:bg-transparent"}
-                                                        onClick={() => handleRowClick(isIndependent)}
-                                                    >
-                                                        <TableCell className="text-center">{index + 1}</TableCell>
-                                                        <TableCell>{rkt.identification}</TableCell>
-                                                        <TableCell>{rkt.root_problem}</TableCell>
-                                                        <TableCell
-                                                            className={getRowColor(isIndependent, 'activity', rkt.priorities_activity_level || '')}
-                                                            onClick={(e) => {
-                                                                if (!isIndependent) {
-                                                                    e.stopPropagation();
-                                                                    handleCellClick(rkt, 'activity', rkt.priorities_activity_level || '');
-                                                                }
-                                                            }}
-                                                        >
-                                                            {rkt.fixing_activity}
-                                                        </TableCell>
-                                                        <TableCell
-                                                            className={getRowColor(isIndependent, 'implementation', rkt.priorities_implementation_level || '')}
-                                                            onClick={(e) => {
-                                                                if (!isIndependent) {
-                                                                    e.stopPropagation();
-                                                                    handleCellClick(rkt, 'implementation', rkt.priorities_implementation_level || '');
-                                                                }
-                                                            }}
-                                                        >
-                                                            {rkt.implementation_activity}
-                                                        </TableCell>
-                                                        <TableCell>{formatCost(rkt.is_require_cost)}</TableCell>
-                                                    </TableRow>
-                                                )
-                                            })
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center h-24">
-                                                    Tidak ada data RKT.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Tabs Section */}
+                    <Tabs defaultValue="rkt" className="w-full">
+                        <TabsList className="mb-4">
+                            <TabsTrigger value="rkt">Rencana Kerja Tahunan (RKT)</TabsTrigger>
+                            <TabsTrigger value="arkas">Rencana Kegiatan Anggaran Sekolah (RKAS)</TabsTrigger>
+                        </TabsList>
 
-                    {/* Table 2: Recommendations */}
-                    <Card className="w-full">
-                        <CardHeader>
-                            <CardTitle>Saran RKT berdasarkan analisis rapor pendidikan yang belum terakomodir</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="border rounded-md overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[50px]">No</TableHead>
-                                            <TableHead>Identifikasi</TableHead>
-                                            <TableHead>Akar Masalah</TableHead>
-                                            <TableHead>Kegiatan Benahi</TableHead>
-                                            <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
-                                            <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {recommendations && recommendations.length > 0 ? (
-                                            recommendations.map((rec, index) => (
-                                                <TableRow key={rec.id}>
-                                                    <TableCell className="text-center">{index + 1}</TableCell>
-                                                    <TableCell>{rec.identification}</TableCell>
-                                                    <TableCell>{rec.root_problem}</TableCell>
-                                                    <TableCell>{rec.activity}</TableCell>
-                                                    <TableCell>{rec.implementation_description}</TableCell>
-                                                    <TableCell>{formatCost(rec.is_require_cost)}</TableCell>
+                        <TabsContent value="rkt" className="space-y-8">
+                            {/* Table 1: RKTs */}
+                            <Card className="w-full">
+                                <CardHeader>
+                                    <CardTitle>Rencana Kerja Tahunan</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="border rounded-md overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[50px]">No</TableHead>
+                                                    <TableHead>Identifikasi</TableHead>
+                                                    <TableHead>Akar Masalah</TableHead>
+                                                    <TableHead>Kegiatan Benahi</TableHead>
+                                                    <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
+                                                    <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
                                                 </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center h-24">
-                                                    Tidak ada saran rekomendasi.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {rkts && rkts.length > 0 ? (
+                                                    rkts.map((rkt, index) => {
+                                                        const isIndependent = rkt?.priorities_identification_score === 0 || rkt?.priorities_root_problem_score === 0
+                                                        return (
+                                                            <TableRow
+                                                                key={rkt.id}
+                                                                className={isIndependent ? "bg-gray-200 hover:bg-gray-200 cursor-pointer" : "hover:bg-transparent"}
+                                                                onClick={() => handleRowClick(isIndependent)}
+                                                            >
+                                                                <TableCell className="text-center">{index + 1}</TableCell>
+                                                                <TableCell>{rkt.identification}</TableCell>
+                                                                <TableCell>{rkt.root_problem}</TableCell>
+                                                                <TableCell
+                                                                    className={getRowColor(isIndependent, 'activity', rkt.priorities_activity_level || '')}
+                                                                    onClick={(e) => {
+                                                                        if (!isIndependent) {
+                                                                            e.stopPropagation();
+                                                                            handleCellClick(rkt, 'activity', rkt.priorities_activity_level || '');
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {rkt.fixing_activity}
+                                                                </TableCell>
+                                                                <TableCell
+                                                                    className={getRowColor(isIndependent, 'implementation', rkt.priorities_implementation_level || '')}
+                                                                    onClick={(e) => {
+                                                                        if (!isIndependent) {
+                                                                            e.stopPropagation();
+                                                                            handleCellClick(rkt, 'implementation', rkt.priorities_implementation_level || '');
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {rkt.implementation_activity}
+                                                                </TableCell>
+                                                                <TableCell>{formatCost(rkt.is_require_cost)}</TableCell>
+                                                            </TableRow>
+                                                        )
+                                                    })
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="text-center h-24">
+                                                            Tidak ada data RKT.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Table 2: Recommendations */}
+                            <Card className="w-full">
+                                <CardHeader>
+                                    <CardTitle>Saran RKT berdasarkan analisis rapor pendidikan yang belum terakomodir</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="border rounded-md overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[50px]">No</TableHead>
+                                                    <TableHead>Identifikasi</TableHead>
+                                                    <TableHead>Akar Masalah</TableHead>
+                                                    <TableHead>Kegiatan Benahi</TableHead>
+                                                    <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
+                                                    <TableHead className="w-[150px]">Apakah Kegiatan Membutuhkan Biaya?</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {recommendations && recommendations.length > 0 ? (
+                                                    recommendations.map((rec, index) => (
+                                                        <TableRow key={rec.id}>
+                                                            <TableCell className="text-center">{index + 1}</TableCell>
+                                                            <TableCell>{rec.identification}</TableCell>
+                                                            <TableCell>{rec.root_problem}</TableCell>
+                                                            <TableCell>{rec.activity}</TableCell>
+                                                            <TableCell>{rec.implementation_description}</TableCell>
+                                                            <TableCell>{formatCost(rec.is_require_cost)}</TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="text-center h-24">
+                                                            Tidak ada saran rekomendasi.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="arkas">
+                            <Card className="w-full">
+                                <CardHeader>
+                                    <CardTitle>Rencana Kegiatan Anggaran Sekolah</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="border rounded-md overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[50px]">No</TableHead>
+                                                    <TableHead>Kegiatan Benahi</TableHead>
+                                                    <TableHead>Penjelasan Implementasi Kegiatan</TableHead>
+                                                    <TableHead>Kegiatan ARKAS</TableHead>
+                                                    <TableHead>Penjelasan Kegiatan ARKAS</TableHead>
+                                                    <TableHead>Bulan</TableHead>
+                                                    <TableHead>Kuantitas</TableHead>
+                                                    <TableHead>Satuan</TableHead>
+                                                    <TableHead>Harga Satuan</TableHead>
+                                                    <TableHead>Total Harga</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {arkas && arkas.length > 0 ? (
+                                                    arkas.map((item, index) => (
+                                                        <TableRow key={item.id}>
+                                                            <TableCell className="text-center">{index + 1}</TableCell>
+                                                            <TableCell>{item.fixing_activity}</TableCell>
+                                                            <TableCell>{item.implementation_description}</TableCell>
+                                                            <TableCell>{item.arkas_activity}</TableCell>
+                                                            <TableCell>{item.arkas_activity_description}</TableCell>
+                                                            <TableCell>{item.budget_month}</TableCell>
+                                                            <TableCell>{item.quantity}</TableCell>
+                                                            <TableCell>{item.unit}</TableCell>
+                                                            <TableCell>
+                                                                {new Intl.NumberFormat('id-ID', {
+                                                                    style: 'currency',
+                                                                    currency: 'IDR',
+                                                                    minimumFractionDigits: 0
+                                                                }).format(item.unit_price)}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {new Intl.NumberFormat('id-ID', {
+                                                                    style: 'currency',
+                                                                    currency: 'IDR',
+                                                                    minimumFractionDigits: 0
+                                                                }).format(item.total_price)}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={10} className="text-center h-24">
+                                                            Tidak ada data ARKAS.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent className="sm:max-w-[600px]">
