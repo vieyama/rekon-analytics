@@ -246,8 +246,6 @@ class ReportController extends Controller
                 DATA:
                 {$promptImplData}";
                 
-                // dd($promptFixing);
-
                 try {
                     $responses = Http::pool(function (Pool $pool) use ($aiModel, $apiKey, $promptFixing, $promptImpl) {
                         return [
@@ -365,7 +363,6 @@ class ReportController extends Controller
 
             $denominator = ($totalRktData - $prioritiesSchoolIndependentScore) + $unselectedPrioritiesCount;
             $finalPrioritiesScore = $denominator > 0 ? ($totalPrioritiesScoreSum / $denominator) * 100 : 0;
-            dd($denominator, $totalRktData, $prioritiesSchoolIndependentScore, $unselectedPrioritiesCount, $totalPrioritiesScoreSum);
 
             // 1. Insert into reports table
             $reportId = DB::table('reports')->insertGetId([
