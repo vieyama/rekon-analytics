@@ -7,6 +7,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/Components/ui/table';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/Components/ui/popover';
+import { X } from 'lucide-react';
+import { useState } from 'react';
 import { Rkt } from './RktTable';
 import { cn } from '@/lib/utils';
 import activityDataset from '../../../../data/activityDataset.json';
@@ -35,6 +42,35 @@ export interface Arkas {
 interface ArkasTableProps {
     arkas: Arkas[];
     rkts: Rkt[];
+}
+
+const WarningPopover = ({ children, title, content }: { children: React.ReactNode, title: string, content: string }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div className="cursor-pointer w-full h-full min-h-[20px] flex items-start">
+                    {children}
+                </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+                    <h4 className="font-bold text-gray-900 text-sm">{title}</h4>
+                    <X 
+                        className="h-4 w-4 text-gray-500 cursor-pointer hover:text-gray-700" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setOpen(false);
+                        }} 
+                    />
+                </div>
+                <div className="p-4">
+                    <p className="text-sm text-gray-700">{content}</p>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
 }
 
 export default function ArkasTable({ arkas, rkts }: ArkasTableProps) {
@@ -103,46 +139,128 @@ export default function ArkasTable({ arkas, rkts }: ArkasTableProps) {
                                         <TableRow key={item.id}>
                                             <TableCell className="text-center align-top">{index + 1}</TableCell>
 
-                                            {/* Kegiatan Benahi */}
-                                            <TableCell className={cn("align-top", formulaA && "bg-red-200")}>
-                                                {item.fixing_activity}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaA && "bg-red-200")}>
+                                                {formulaA ? (
+                                                    <WarningPopover
+                                                        title="RKAS tidak berdasarkan RKT"
+                                                        content="Data RKAS ini tidak berdasarkan RKT yang membutuhkan biaya."
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {item.fixing_activity}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {item.fixing_activity}
+                                                    </div>
+                                                )}
                                             </TableCell>
                                             {/* Penjelasan Implementasi Kegiatan */}
-                                            <TableCell className={cn("align-top", formulaA && "bg-red-200")}>
-                                                {item.implementation_description}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaA && "bg-red-200")}>
+                                                {formulaA ? (
+                                                    <WarningPopover
+                                                        title="RKAS tidak berdasarkan RKT"
+                                                        content="Data RKAS ini tidak berdasarkan RKT yang membutuhkan biaya."
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {item.implementation_description}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {item.implementation_description}
+                                                    </div>
+                                                )}
                                             </TableCell>
 
-                                            {/* Kegiatan ARKAS & Uraian - Dataset check (Placeholder for now) */}
-                                            {/* e != f, d != g. Since we don't have dataset, we leave as is */}
-                                            <TableCell className={cn("align-top", formulaB && "bg-red-200")}>
-                                                {item.arkas_activity}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaB && "bg-red-200")}>
+                                                {formulaB ? (
+                                                    <WarningPopover
+                                                        title="Kegiatan RKAS tidak sama dengan referensi kegiatan di ARKAS"
+                                                        content="Saran perbaikan ubah agar sesuai referensi ARKAS."
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {item.arkas_activity}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {item.arkas_activity}
+                                                    </div>
+                                                )}
                                             </TableCell>
-                                            <TableCell className={cn("align-top", formulaC && "bg-red-200")}>
-                                                {item.arkas_activity_description}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaC && "bg-red-200")}>
+                                                {formulaC ? (
+                                                    <WarningPopover
+                                                        title="Uraian kegiatan RKAS tidak sama dengan referensi barang di ARKAS"
+                                                        content="Saran perbaikan ubah agar sesuai referensi ARKAS."
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {item.arkas_activity_description}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {item.arkas_activity_description}
+                                                    </div>
+                                                )}
                                             </TableCell>
 
                                             <TableCell className="align-top">{item.budget_month}</TableCell>
 
-                                            {/* Math Error Highlights */}
                                             <TableCell className={cn("align-top", item.wrong_unit && "bg-red-200")}>
                                                 {item.quantity}
                                             </TableCell>
                                             <TableCell className={cn("align-top", formulaD ? "bg-gray-200" : formulaE && "bg-red-200")}>
                                                 {item.unit}
                                             </TableCell>
-                                            <TableCell className={cn("align-top", formulaD ? "bg-gray-200" : formulaF && "bg-red-200")}>
-                                                {new Intl.NumberFormat('id-ID', {
-                                                    style: 'currency',
-                                                    currency: 'IDR',
-                                                    minimumFractionDigits: 0
-                                                }).format(item.unit_price)}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaD ? "bg-gray-200" : formulaF && "bg-red-200")}>
+                                                {formulaF ? (
+                                                    <WarningPopover
+                                                        title="Harga Satuan RKAS tidak sama dengan referensi barang di ARKAS"
+                                                        content="Saran perbaikan ubah agar sesuai referensi ARKAS."
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {new Intl.NumberFormat('id-ID', {
+                                                                style: 'currency',
+                                                                currency: 'IDR',
+                                                                minimumFractionDigits: 0
+                                                            }).format(item.unit_price)}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {new Intl.NumberFormat('id-ID', {
+                                                            style: 'currency',
+                                                            currency: 'IDR',
+                                                            minimumFractionDigits: 0
+                                                        }).format(item.unit_price)}
+                                                    </div>
+                                                )}
                                             </TableCell>
-                                            <TableCell className={cn("align-top", formulaG && "bg-red-200")}>
-                                                {new Intl.NumberFormat('id-ID', {
-                                                    style: 'currency',
-                                                    currency: 'IDR',
-                                                    minimumFractionDigits: 0
-                                                }).format(item.total_price)}
+                                            <TableCell className={cn("align-top p-0 h-px", formulaG && "bg-red-200")}>
+                                                {formulaG ? (
+                                                    <WarningPopover
+                                                        title="Total Salah"
+                                                        content="Total harga salah"
+                                                    >
+                                                        <div className="w-full h-full p-4">
+                                                            {new Intl.NumberFormat('id-ID', {
+                                                                style: 'currency',
+                                                                currency: 'IDR',
+                                                                minimumFractionDigits: 0
+                                                            }).format(item.total_price)}
+                                                        </div>
+                                                    </WarningPopover>
+                                                ) : (
+                                                    <div className="w-full h-full p-4">
+                                                        {new Intl.NumberFormat('id-ID', {
+                                                            style: 'currency',
+                                                            currency: 'IDR',
+                                                            minimumFractionDigits: 0
+                                                        }).format(item.total_price)}
+                                                    </div>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     );
