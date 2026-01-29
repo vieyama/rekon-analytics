@@ -63,21 +63,41 @@ export default function ArkasTable({ arkas, rkts }: ArkasTableProps) {
                         <TableBody>
                             {arkas && arkas.length > 0 ? (
                                 arkas.map((item, index) => {
+                                    // Helper: normalize any value to a comparable string (lowercase, trimmed).
+                                    // Prevents false mismatches due to casing/whitespace across ARKAS, RKT, and dataset fields.
+                                    const normalize = (s: unknown) => (s ?? '').toString().toLowerCase().trim()
+                                    // Mapping to formula variables for clarity:
+                                    // A: ARKAS "Kegiatan Benahi" (fixing_activity)
+                                    // B: ARKAS "Penjelasan Implementasi Kegiatan" (implementation_description)
+                                    // C: RKT item that matches A by fixing_activity
+                                    // D: RKT "Implementasi Kegiatan" from matched C
+                                    // E: ARKAS "Kegiatan ARKAS" (arkas_activity)
+                                    // M: Integer part of total_price (used for math check)
                                     const A = item.fixing_activity
                                     const B = item.implementation_description
-                                    const C = rkts.find((rkt) => rkt.fixing_activity.toLowerCase() === A.toLowerCase())
+                                    const C = rkts.find((rkt) => normalize(rkt.fixing_activity) === normalize(A))
                                     const D = C?.implementation_activity
                                     const E = item.arkas_activity
-                                    const M = Number(item.total_price?.toString().split('.')[0])
+                                    const unitPriceInt = Math.floor(Number(item.unit_price ?? 0))
+                                    const M = Math.floor(Number(item.total_price ?? 0))
 
-                                    const formulaA = B === D && C?.is_require_cost === 0
-                                    const formulaB = !activityDataset.find(item => item.activity_name.toLowerCase() === E.toLowerCase())
-                                    const selecteddescriptionActivityDataset = descriptionActivityDataset.find(dad => dad.product_name.toLowerCase() === item.arkas_activity_description.toLowerCase())
+                                    // Rumus A: Flag if B equals D (case-insensitive) AND RKT is_require_cost == 'Tidak'
+                                    const requiresCostFalse = C ? (C.is_require_cost === false || C.is_require_cost === 0) : false
+                                    const formulaA = normalize(B) === normalize(D) && requiresCostFalse
+                                    // Rumus B: Flag if ARKAS activity E not found in activityDataset (case-insensitive)
+                                    const formulaB = !activityDataset.find(act => normalize(act.activity_name) === normalize(E))
+                                    // Dataset row matched by ARKAS "Penjelasan Kegiatan ARKAS" for unit and price validations
+                                    const selecteddescriptionActivityDataset = descriptionActivityDataset.find(dad => normalize(dad.product_name) === normalize(item.arkas_activity_description))
+                                    // Rumus C: No matching description in dataset
                                     const formulaC = !selecteddescriptionActivityDataset
+                                    // Rumus D: Alias of C; used to gray out unit/price checks when dataset is missing
                                     const formulaD = formulaC
-                                    const formulaE = !selecteddescriptionActivityDataset?.unit?.toLowerCase().includes(item.unit.toLowerCase())
-                                    const formulaF = Number(item.unit_price?.toString().split('.')[0]) > Number(selecteddescriptionActivityDataset?.max_price)
-                                    const formulaG = M !== Number(item.unit_price?.toString().split('.')[0]) * item.quantity
+                                    // Rumus E: Unit mismatch; ARKAS unit must be included in dataset's unit list
+                                    const formulaE = !selecteddescriptionActivityDataset?.unit?.toLowerCase().includes(normalize(item.unit))
+                                    // Rumus F: Unit price greater than dataset max_price (only validate when dataset exists)
+                                    const formulaF = selecteddescriptionActivityDataset ? (unitPriceInt > Number(selecteddescriptionActivityDataset?.max_price ?? Number.POSITIVE_INFINITY)) : false
+                                    // Rumus G: Total price mismatch; total != unit_price * quantity (integer comparison)
+                                    const formulaG = M !== unitPriceInt * item.quantity
 
                                     return (
                                         <TableRow key={item.id}>
