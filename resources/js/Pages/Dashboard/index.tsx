@@ -53,7 +53,6 @@ export const columns: ColumnDef<TempDataType>[] = [
         enableHiding: false,
         cell: ({ row }) => {
             const handleDelete = (id: string) => {
-                console.log(id);
                 router.delete(`/report/${id}`, {
                     onSuccess: () => {
                         toast({

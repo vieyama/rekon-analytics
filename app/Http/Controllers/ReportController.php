@@ -246,6 +246,8 @@ class ReportController extends Controller
                 DATA:
                 {$promptImplData}";
                 
+                // dd($promptFixing);
+
                 try {
                     $responses = Http::pool(function (Pool $pool) use ($aiModel, $apiKey, $promptFixing, $promptImpl) {
                         return [
@@ -363,6 +365,7 @@ class ReportController extends Controller
 
             $denominator = ($totalRktData - $prioritiesSchoolIndependentScore) + $unselectedPrioritiesCount;
             $finalPrioritiesScore = $denominator > 0 ? ($totalPrioritiesScoreSum / $denominator) * 100 : 0;
+            dd($denominator, $totalRktData, $prioritiesSchoolIndependentScore, $unselectedPrioritiesCount, $totalPrioritiesScoreSum);
 
             // 1. Insert into reports table
             $reportId = DB::table('reports')->insertGetId([
@@ -429,14 +432,21 @@ class ReportController extends Controller
                     Arkas::create([
                         'report_id' => $reportId,
                         'fixing_activity' => $arkasData['fixing_activity'],
+                        'wrong_fixing_activity' => $arkasData['wrong_fixing_activity'] ?? false,
                         'implementation_description' => $arkasData['implementation_description'],
+                        'wrong_implementation_description' => $arkasData['wrong_implementation_description'] ?? false,
                         'arkas_activity' => $arkasData['arkas_activity'],
+                        'wrong_arkas_activity' => $arkasData['wrong_arkas_activity'] ?? false,
                         'arkas_activity_description' => $arkasData['arkas_activity_description'],
+                        'wrong_arkas_activity_description' => $arkasData['wrong_arkas_activity_description'] ?? false,
                         'budget_month' => $arkasData['budget_month'],
                         'quantity' => $arkasData['quantity'],
                         'unit' => $arkasData['unit'],
+                        'wrong_unit' => $arkasData['wrong_unit'] ?? false,
                         'unit_price' => $arkasData['unit_price'],
+                        'wrong_unit_price' => $arkasData['wrong_unit_price'] ?? false,
                         'total_price' => $arkasData['total_price'],
+                        'wrong_total_rice' => $arkasData['wrong_total_rice'] ?? false,
                     ]);
                 }
             }
