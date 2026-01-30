@@ -41,6 +41,7 @@ class DashboardController extends Controller
                 $arkasService->generate($reportId);
                 $arkasRecommendations = \App\Models\ArkasRecommendation::where('report_id', $reportId)->get();
             } catch (\Exception $e) {
+                dd($e);
                 // Log the error but proceed without crashing the page
                 \Illuminate\Support\Facades\Log::error('Failed to auto-generate Arkas Recommendations: ' . $e->getMessage());
             }
