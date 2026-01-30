@@ -11,10 +11,9 @@ class ArkasRecommendationService
 {
     public function generate(int $reportId)
     {
-        // Filter RKTs that require cost (is_require_cost = true) and not accommodated (is_akomodir = false)
+        // Filter RKTs that require cost (is_require_cost = true) 
         $rkts = Rkt::where('report_id', $reportId)
             ->where('is_require_cost', true)
-            ->where('is_akomodir', false)
             ->get();
 
         if ($rkts->isEmpty()) {
@@ -31,15 +30,15 @@ class ArkasRecommendationService
         })->toArray();
 
         // Prepare Datasets
-        $activityDatasetPath = resource_path('data/activityDataset.json');
-        $descriptionDatasetPath = resource_path('data/descriptionActivityDataset.json');
+        // $activityDatasetPath = resource_path('data/activityDataset.json');
+        // $descriptionDatasetPath = resource_path('data/descriptionActivityDataset.json');
 
-        if (! file_exists($activityDatasetPath) || ! file_exists($descriptionDatasetPath)) {
-            throw new \Exception('Datasets not found');
-        }
+        // if (! file_exists($activityDatasetPath) || ! file_exists($descriptionDatasetPath)) {
+        //     throw new \Exception('Datasets not found');
+        // }
 
-        $activityDataset = file_get_contents($activityDatasetPath);
-        $descriptionDataset = file_get_contents($descriptionDatasetPath);
+        // $activityDataset = file_get_contents($activityDatasetPath);
+        // $descriptionDataset = file_get_contents($descriptionDatasetPath);
 
         $aiModel = env('VITE_AI_MODEL');
         $apiKey = env('VITE_GEMINI_API_KEY');
