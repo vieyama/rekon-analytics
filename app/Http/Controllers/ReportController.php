@@ -8,6 +8,7 @@ use App\Models\Priorities;
 use App\Models\Report;
 use App\Models\Rkt;
 use App\Models\RktRecommendation;
+use App\Services\ArkasRecommendationService;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -649,5 +650,16 @@ class ReportController extends Controller
         $rkt->update($dataToUpdate);
 
         return back();
+    }
+
+    public function generateArkasRecommendation(Request $request, $report_id, ArkasRecommendationService $arkasService)
+    {
+        try {
+            $recommendations = $arkasService->generate($report_id);
+            return response()->json(['message' => 'Recommendations generated successfully', 'data' => $recommendations]);
+        } catch (\Exception $e) {
+            Log::error('Arkas Recommendation Generation Failed: ' . $e->getMessage());
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 }

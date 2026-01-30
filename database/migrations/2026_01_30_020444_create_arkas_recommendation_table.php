@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('arkas', function (Blueprint $table) {
+        Schema::create('arkas_recommendation', function (Blueprint $table) {
             $table->id();
             $table->foreignId('report_id')->constrained('reports')->onDelete('cascade');
             $table->text('fixing_activity')->nullable(); // Kegiatan Benahi
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('arkas');
+        Schema::dropIfExists('arkas_recommendation');
     }
 };

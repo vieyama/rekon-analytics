@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs"
 import RktTable, { Rkt, RktRecommendation } from './Components/RktTable';
-import ArkasTable, { Arkas } from './Components/ArkasTable';
+import ArkasTable, { Arkas, ArkasRecommendation } from './Components/ArkasTable';
 
 interface Report {
     year: string;
@@ -11,11 +11,12 @@ interface Report {
 }
 
 export default function DetailReport() {
-    const { rkts, recommendations, report, arkas } = usePage().props as unknown as {
+    const { rkts, recommendations, report, arkas, arkasRecommendations } = usePage().props as unknown as {
         rkts: Rkt[],
         recommendations: RktRecommendation[],
         report: Report,
-        arkas: Arkas[]
+        arkas: Arkas[],
+        arkasRecommendations: ArkasRecommendation[]
     };
 
     return (
@@ -45,7 +46,7 @@ export default function DetailReport() {
                         </TabsContent>
 
                         <TabsContent value="arkas">
-                            <ArkasTable arkas={arkas} rkts={rkts} />
+                            <ArkasTable arkas={arkas} arkasRecommendations={arkasRecommendations} rkts={rkts} />
                         </TabsContent>
                     </Tabs>
                 </div>
